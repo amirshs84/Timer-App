@@ -98,12 +98,18 @@ export const useStudyTimer = (initialSeconds = 0) => {
    * WakeLock Logic
    */
   const requestWakeLock = async () => {
-    try {
-      if ('wakeLock' in navigator) {
+    if ('wakeLock' in navigator && !wakeLockRef.current) {
+      try {
         wakeLockRef.current = await navigator.wakeLock.request('screen');
+        console.log('Wake Lock acquired');
+        
+        wakeLockRef.current.addEventListener('release', () => {
+          console.log('Wake Lock released');
+          wakeLockRef.current = null;
+        });
+      } catch (error) {
+        console.warn('Wake Lock request failed:', error);
       }
-    } catch (error) {
-      console.warn('Wake Lock request failed:', error);
     }
   };
 
@@ -122,10 +128,13 @@ export const useStudyTimer = (initialSeconds = 0) => {
    * Visibility Change Logic
    */
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'hidden' && isActive && !isPaused) {
         pause();
         setFocusLost(true);
+      } else if (document.visibilityState === 'visible' && isActive && !isPaused) {
+        // Re-acquire wake lock when returning to the app if timer is running
+        await requestWakeLock();
       }
     };
 

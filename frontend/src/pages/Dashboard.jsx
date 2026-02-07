@@ -94,22 +94,21 @@ const Dashboard = () => {
     return course?.color_code || '#3b82f6';
   };
 
-  // Heatmap functions - تقویم فارسی (شنبه تا جمعه)
   const getHeatmapData = () => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Ensure today is at start of day local time
     const heatmapDays = [];
     
     // Generate last 90 days
     for (let i = 89; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
       
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       const daySessions = studySessions.filter(session => {
         const sessionDate = new Date(session.start_time);
-        sessionDate.setHours(0, 0, 0, 0);
-        return sessionDate.toISOString().split('T')[0] === dateStr;
+        const sessionDateStr = `${sessionDate.getFullYear()}-${String(sessionDate.getMonth() + 1).padStart(2, '0')}-${String(sessionDate.getDate()).padStart(2, '0')}`;
+        return sessionDateStr === dateStr;
       });
       
       const totalMinutes = Math.floor(getTotalStudyTime(daySessions) / 60);
@@ -149,10 +148,12 @@ const Dashboard = () => {
     } else if (activeTab === 'weekly') {
       const weekAgo = new Date(now);
       weekAgo.setDate(weekAgo.getDate() - 7);
+      weekAgo.setHours(0, 0, 0, 0);
       return studySessions.filter(session => new Date(session.start_time) >= weekAgo);
     } else if (activeTab === 'monthly') {
       const monthAgo = new Date(now);
       monthAgo.setDate(monthAgo.getDate() - 30);
+      monthAgo.setHours(0, 0, 0, 0);
       return studySessions.filter(session => new Date(session.start_time) >= monthAgo);
     }
     

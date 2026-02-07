@@ -16,12 +16,15 @@ export default defineConfig({
         clientsClaim: true,
       },
       manifest: {
-        name: 'Study Timer',
-        short_name: 'StudyTimer',
-        description: 'A progressive web app for study timing',
-        theme_color: '#000000',
+        name: 'تایمر مطالعه',
+        short_name: 'تایمر',
+        description: 'اپلیکیشن مدیریت زمان مطالعه و تمرکز',
+        theme_color: '#064e3b',
         background_color: '#000000',
         display: 'standalone',
+        orientation: 'portrait',
+        start_url: '/',
+        scope: '/',
         icons: [
           {
             src: '/icon-192x192.png',

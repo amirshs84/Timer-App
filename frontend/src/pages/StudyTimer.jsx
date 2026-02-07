@@ -397,7 +397,7 @@ const StudyTimer = () => {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="مثال: تمرین فصل ۳، حل تست، مرور کنکور ..."
+                placeholder="مثال: تمرین فصل ۳، حل تست،  ..."
                 rows="3"
                 className="w-full px-4 py-3 bg-gray-950/50 text-white rounded-xl border border-gray-700 
                          focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20
