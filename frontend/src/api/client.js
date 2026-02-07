@@ -1,0 +1,61 @@
+import axios from 'axios';
+
+const baseURL = 'http://localhost:8000/api/';
+
+const api = axios.create({
+  baseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add a request interceptor to attach the token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add a response interceptor to handle token refresh (optional/basic for now)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If 401 (Unauthorized) and we haven't tried to refresh yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+       // For now, just logout if token expires (simple implementation)
+       // Can be enhanced with refresh token logic later
+       localStorage.removeItem('accessToken');
+       localStorage.removeItem('refreshToken');
+       localStorage.removeItem('isLoggedIn');
+       window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authAPI = {
+  requestOtp: (phoneNumber) => api.post('auth/request-otp/', { phone_number: phoneNumber }),
+  login: (phoneNumber, otp) => api.post('auth/login/', { phone_number: phoneNumber, otp }),
+  getProfile: () => api.get('profile/'),
+  updateProfile: (data) => api.put('profile/', data),
+};
+
+export const dataAPI = {
+  getSubjects: () => api.get('subjects/'),
+  createSubject: (data) => api.post('subjects/', data),
+  getSessions: () => api.get('sessions/'), // This endpoint lists recent sessions
+  createSession: (data) => api.post('sessions/', data),
+  getDashboardStats: () => api.get('dashboard/stats/'),
+};
+
+export default api;
+
