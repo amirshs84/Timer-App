@@ -85,12 +85,36 @@ const StudyTimer = () => {
   const handleStart = () => {
     const now = new Date();
     setStartTime(now);
+    
+    // Also update the ref inside the hook's scope if we could, 
+    // but the hook handles its own start. 
+    // We need to ensure StudyTimer's local startTime is synced.
     start();
   };
 
+  // Sync StudyTimer's local startTime with the hook's logic
+  useEffect(() => {
+    if (isActive && !startTime) {
+      try {
+        const savedState = localStorage.getItem('timerState');
+        if (savedState) {
+          const state = JSON.parse(savedState);
+          if (state.startTime) setStartTime(new Date(state.startTime));
+        }
+      } catch (e) {}
+    }
+  }, [isActive, startTime]);
+
   const handleStop = () => {
     const studyTime = seconds;
-    setEndTime(new Date());
+    const end = new Date();
+    setEndTime(end);
+    
+    // Always recalculate start time based on duration to ensure consistency
+    // This fixes the issue where startTime might be missing or from a different base date (causing huge duration)
+    const start = new Date(end.getTime() - (studyTime * 1000));
+    setStartTime(start);
+
     if (studyTime > 0) {
       setAdjustedTime(studyTime);
       setShowSaveModal(true);
@@ -100,38 +124,40 @@ const StudyTimer = () => {
   };
 
   const handleSaveSession = async (finalTime, editedStartTime, editedEndTime, courseName, courseDescription) => {
+    if (isSaving) return;
     setIsSaving(true);
     try {
-        await dataAPI.createSession({
+        console.log("Saving session:", { courseName, finalTime });
+        const response = await dataAPI.createSession({
             subject_name: courseName,
             description: courseDescription,
             start_time: editedStartTime.toISOString(),
             end_time: editedEndTime.toISOString(),
-            // duration is calculated by backend or we can send it
         });
+        console.log("Session saved successfully:", response.data);
 
-        // Update stats locally or re-fetch
+        // Update stats locally
         setTodayStats(prev => ({
-            time: prev.time + finalTime,
-            sessions: prev.sessions + 1
+            time: (prev.time || 0) + finalTime,
+            sessions: (prev.sessions || 0) + 1
         }));
         
-        // If it was a new course, add it to list (optimistic or re-fetch)
-        if (!courses.find(c => c.name === courseName)) {
-            // Re-fetch courses to get the new ID/Color
-            const res = await dataAPI.getSubjects();
-            setCourses(res.data);
-        }
+        // If it was a new course, re-fetch subjects
+        const subjectsRes = await dataAPI.getSubjects();
+        setCourses(subjectsRes.data);
 
         setShowSaveModal(false);
         setNewCourseName('');
         setDescription('');
         setSelectedSubject('');
+        
+        // Clean up timer state
+        localStorage.removeItem('timerState');
         stop();
         
     } catch (error) {
-        console.error("Failed to save session:", error);
-        alert("خطا در ذخیره جلسه مطالعه. لطفا دوباره تلاش کنید.");
+        console.error("Failed to save session:", error.response?.data || error.message);
+        alert(`خطا در ذخیره جلسه مطالعه: ${JSON.stringify(error.response?.data || error.message)}`);
     } finally {
         setIsSaving(false);
     }
@@ -139,6 +165,7 @@ const StudyTimer = () => {
 
 
   const formatTime = (totalSeconds) => {
+    if (typeof totalSeconds !== 'number' || isNaN(totalSeconds)) return "00:00";
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
@@ -386,15 +413,18 @@ const StudyTimer = () => {
                   <label className="block text-xs text-gray-500 mb-2">زمان شروع</label>
                   <input
                     type="time"
-                    value={startTime ? new Date(startTime).toTimeString().slice(0, 5) : ''}
+                    value={startTime && !isNaN(startTime.getTime()) ? startTime.toTimeString().slice(0, 5) : ''}
                     onChange={(e) => {
                       const [hours, minutes] = e.target.value.split(':');
-                      const newStart = new Date(startTime);
+                      // Use endTime as base if startTime is somehow broken, or just current startTime
+                      const baseDate = (startTime && !isNaN(startTime.getTime())) ? startTime : new Date();
+                      const newStart = new Date(baseDate);
                       newStart.setHours(parseInt(hours), parseInt(minutes));
+                      newStart.setSeconds(0); // Reset seconds for cleaner input
                       setStartTime(newStart);
                       
-                      if (endTime) {
-                        const diff = Math.floor((endTime - newStart) / 1000);
+                      if (endTime && !isNaN(endTime.getTime())) {
+                        let diff = Math.floor((endTime - newStart) / 1000);
                         setAdjustedTime(Math.max(60, diff));
                       }
                     }}
@@ -407,14 +437,16 @@ const StudyTimer = () => {
                   <label className="block text-xs text-gray-500 mb-2">زمان پایان</label>
                   <input
                     type="time"
-                    value={endTime ? new Date(endTime).toTimeString().slice(0, 5) : ''}
+                    value={endTime && !isNaN(endTime.getTime()) ? endTime.toTimeString().slice(0, 5) : ''}
                     onChange={(e) => {
                       const [hours, minutes] = e.target.value.split(':');
-                      const newEnd = new Date(endTime);
+                      const baseDate = (endTime && !isNaN(endTime.getTime())) ? endTime : new Date();
+                      const newEnd = new Date(baseDate);
                       newEnd.setHours(parseInt(hours), parseInt(minutes));
+                      newEnd.setSeconds(0);
                       setEndTime(newEnd);
                       
-                      if (startTime) {
+                      if (startTime && !isNaN(startTime.getTime())) {
                         const diff = Math.floor((newEnd - startTime) / 1000);
                         setAdjustedTime(Math.max(60, diff));
                       }

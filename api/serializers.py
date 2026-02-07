@@ -19,6 +19,7 @@ class SubjectSerializer(serializers.ModelSerializer):
 class StudySessionSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source='subject.name', read_only=True)
     subject_color = serializers.CharField(source='subject.color_code', read_only=True)
+    subject = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = StudySession

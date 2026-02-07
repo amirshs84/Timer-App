@@ -6,59 +6,93 @@ import { useState, useEffect, useRef } from 'react';
  * @returns {Object} Timer state and control functions
  */
 export const useStudyTimer = (initialSeconds = 0) => {
-  const [seconds, setSeconds] = useState(() => {
-    // بازیابی زمان از localStorage در هنگام مقداردهی اولیه
-    try {
-      const savedState = localStorage.getItem('timerState');
-      if (savedState) {
-        const state = JSON.parse(savedState);
-        if (state.isActive && state.startTime) {
-          const now = Date.now();
-          const startTime = new Date(state.startTime).getTime();
-          if (!isNaN(startTime)) {
-            const elapsedSeconds = Math.floor((now - startTime) / 1000);
-            return elapsedSeconds >= 0 ? elapsedSeconds : initialSeconds;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Failed to restore timer seconds:", e);
-    }
-    return initialSeconds;
-  });
-
-  const [isActive, setIsActive] = useState(() => {
-    try {
-      const savedState = localStorage.getItem('timerState');
-      return savedState ? JSON.parse(savedState).isActive : false;
-    } catch (e) { return false; }
-  });
-
-  const [isPaused, setIsPaused] = useState(() => {
-    try {
-      const savedState = localStorage.getItem('timerState');
-      return savedState ? JSON.parse(savedState).isPaused : false;
-    } catch (e) { return false; }
-  });
-
-  const [focusLost, setFocusLost] = useState(false);
+  // State to hold the current elapsed time in seconds
+  const [seconds, setSeconds] = useState(initialSeconds);
   
+  // State to track if the timer is currently running (active)
+  const [isActive, setIsActive] = useState(false);
+  
+  // State to track if the timer is paused
+  const [isPaused, setIsPaused] = useState(false);
+  
+  // State to track if focus was lost (tab switch/minimize)
+  const [focusLost, setFocusLost] = useState(false);
+
+  // Flag to track if state has been restored from localStorage
+  const [isRestored, setIsRestored] = useState(false);
+
+  // Refs to hold mutable values that don't trigger re-renders
   const wakeLockRef = useRef(null);
   const intervalRef = useRef(null);
-  const startTimeRef = useRef(null);
+  
+  // Timestamps
+  const currentSegmentStartRef = useRef(null); // When the *current* running segment started (for calculating elapsed)
+  const accumulatedTimeRef = useRef(0); // Time accumulated from previous segments
+  const sessionStartTimeRef = useRef(null); // The wall-clock time when the session FIRST started
 
-  // بازیابی startTimeRef
+  // Initialize state from localStorage on mount
   useEffect(() => {
     try {
       const savedState = localStorage.getItem('timerState');
       if (savedState) {
         const state = JSON.parse(savedState);
-        if (state.startTime) {
-          startTimeRef.current = new Date(state.startTime);
+        
+        // Restore refs
+        accumulatedTimeRef.current = state.accumulatedTime || 0;
+        sessionStartTimeRef.current = state.sessionStartTime || null;
+        
+        // Restore active/paused states
+        if (state.isActive) {
+          setIsActive(true);
+          
+          if (state.isPaused) {
+             setIsPaused(true);
+             // If paused, the displayed seconds is just the accumulated time
+             setSeconds(accumulatedTimeRef.current);
+          } else {
+             // If running, calculate elapsed time since the current segment start
+             const now = Date.now();
+             const segmentStart = state.currentSegmentStart;
+             
+             if (segmentStart && !isNaN(segmentStart)) {
+                currentSegmentStartRef.current = segmentStart;
+                const currentSegmentDuration = Math.floor((now - segmentStart) / 1000);
+                setSeconds(accumulatedTimeRef.current + currentSegmentDuration);
+             } else {
+                // Fallback if segment start is missing but state says running
+                setSeconds(accumulatedTimeRef.current);
+             }
+             requestWakeLock();
+          }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to restore timer state:", e);
+      setSeconds(initialSeconds);
+    } finally {
+      setIsRestored(true);
+    }
   }, []);
+
+  // Persist state to localStorage whenever significant state changes
+  useEffect(() => {
+    if (!isRestored) return;
+
+    if (isActive) {
+      const stateToSave = {
+        isActive,
+        isPaused,
+        currentSegmentStart: currentSegmentStartRef.current,
+        accumulatedTime: accumulatedTimeRef.current,
+        sessionStartTime: sessionStartTimeRef.current,
+        lastUpdate: Date.now()
+      };
+      localStorage.setItem('timerState', JSON.stringify(stateToSave));
+    } else {
+      // Only remove if we are fully restored and explicitly inactive (stopped)
+      localStorage.removeItem('timerState');
+    }
+  }, [isActive, isPaused, isRestored]);
 
   /**
    * WakeLock Logic
@@ -67,22 +101,12 @@ export const useStudyTimer = (initialSeconds = 0) => {
     try {
       if ('wakeLock' in navigator) {
         wakeLockRef.current = await navigator.wakeLock.request('screen');
-        console.log('Wake Lock acquired');
-        
-        // Handle wake lock release (e.g., when tab becomes invisible)
-        wakeLockRef.current.addEventListener('release', () => {
-          console.log('Wake Lock released');
-        });
       }
     } catch (error) {
-      // Silently handle errors (browser doesn't support or user denied)
       console.warn('Wake Lock request failed:', error);
     }
   };
 
-  /**
-   * Release the wake lock when timer stops
-   */
   const releaseWakeLock = async () => {
     if (wakeLockRef.current) {
       try {
@@ -95,93 +119,106 @@ export const useStudyTimer = (initialSeconds = 0) => {
   };
 
   /**
-   * Visibility Change Logic: Pause timer when user switches tabs/minimizes
-   * This prevents time from running in the background and alerts user when they return
+   * Visibility Change Logic
    */
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && isActive && !isPaused) {
-        // User switched tabs or minimized - pause the timer
-        setIsPaused(true);
+        pause();
         setFocusLost(true);
-        console.log('Timer paused: Focus lost');
-      } else if (document.visibilityState === 'visible' && focusLost) {
-        // User returned - keep paused but clear the focus lost flag after alert
-        console.log('Timer still paused: User returned');
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isActive, isPaused, focusLost]);
-
-  /**
-   * Timer count-up logic (شمارش از صفر به بالا)
-   */
-  useEffect(() => {
-    if (isActive && !isPaused) {
-      intervalRef.current = setInterval(() => {
-        setSeconds((prevSeconds) => prevSeconds + 1);
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
     };
   }, [isActive, isPaused]);
 
   /**
-   * Start the timer and acquire wake lock
+   * Timer Tick Logic
+   */
+  useEffect(() => {
+    if (isActive && !isPaused) {
+      intervalRef.current = setInterval(() => {
+        const now = Date.now();
+        const start = currentSegmentStartRef.current;
+        if (start) {
+          const currentSegment = Math.floor((now - start) / 1000);
+          setSeconds(accumulatedTimeRef.current + currentSegment);
+        }
+      }, 1000);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isActive, isPaused]);
+
+  /**
+   * Controls
    */
   const start = () => {
     if (isActive && !isPaused) return;
 
-    // شروع جدید
-    setSeconds(0);
-    startTimeRef.current = new Date();
+    const now = Date.now();
+    
+    // If this is the very first start (not a resume), set the session start time
+    if (!isActive && accumulatedTimeRef.current === 0) {
+        sessionStartTimeRef.current = now;
+    }
+
+    currentSegmentStartRef.current = now;
     setIsActive(true);
     setIsPaused(false);
     setFocusLost(false);
     requestWakeLock();
   };
 
-  /**
-   * Pause the timer (keeps wake lock active)
-   */
   const pause = () => {
+    if (!isActive || isPaused) return;
+
+    const now = Date.now();
+    const start = currentSegmentStartRef.current;
+    if (start) {
+        // Add the duration of the current segment to accumulated time
+        accumulatedTimeRef.current += Math.floor((now - start) / 1000);
+    }
+    
     setIsPaused(true);
+    currentSegmentStartRef.current = null;
+    
+    // Update display one last time
+    setSeconds(accumulatedTimeRef.current);
+    
+    if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
-  /**
-   * Resume the timer from paused state
-   */
   const resume = () => {
+    if (!isActive || !isPaused) return;
+
+    const now = Date.now();
+    currentSegmentStartRef.current = now;
     setIsPaused(false);
     setFocusLost(false);
+    requestWakeLock();
   };
 
-  /**
-   * Stop the timer completely and release wake lock
-   */
   const stop = () => {
     setIsActive(false);
     setIsPaused(false);
     setFocusLost(false);
+    accumulatedTimeRef.current = 0;
+    currentSegmentStartRef.current = null;
+    sessionStartTimeRef.current = null;
+    setSeconds(0);
     releaseWakeLock();
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    localStorage.removeItem('timerState');
   };
 
-  /**
-   * Reset timer to initial value
-   */
   const reset = () => {
     stop();
     setSeconds(initialSeconds);
@@ -192,6 +229,7 @@ export const useStudyTimer = (initialSeconds = 0) => {
     isActive,
     isPaused,
     focusLost,
+    sessionStartTime: sessionStartTimeRef.current, // Expose this for the UI
     start,
     pause,
     resume,
