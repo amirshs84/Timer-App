@@ -156,26 +156,11 @@ const Courses = () => {
               <div className="flex items-center gap-3">
                 <span className="text-2xl">👤</span>
                 <div className="text-right">
-                  <div className="font-semibold">ویرایش پروفایل</div>
+                  <div className="font-semibold">پروفایل</div>
                   <div className="text-sm text-gray-400">{editFullName}</div>
                 </div>
               </div>
               <span className="text-gray-400">←</span>
-            </button>
-            
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-between p-4 bg-red-900/20 hover:bg-red-900/30 
-                       border border-red-800/50 rounded-lg transition text-red-400"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🚪</span>
-                <div className="text-right">
-                  <div className="font-semibold">خروج از حساب</div>
-                  <div className="text-sm text-red-400/70">Log out</div>
-                </div>
-              </div>
-              <span>←</span>
             </button>
           </div>
         </div>
@@ -388,6 +373,24 @@ const Courses = () => {
           </div>
         </div>
       )}
+      
+      {/* Logout Button at Bottom */}
+      <div className="max-w-2xl mx-auto px-4 pb-24 mt-6">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-between p-4 bg-red-900/20 hover:bg-red-900/30 
+                   border border-red-800/50 rounded-lg transition text-red-400"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🚪</span>
+            <div className="text-right">
+              <div className="font-semibold">خروج از حساب</div>
+              <div className="text-sm text-red-400/70">Log out</div>
+            </div>
+          </div>
+          <span>←</span>
+        </button>
+      </div>
       
       <ConsultantFAB />
       <BottomNav />

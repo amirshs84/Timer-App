@@ -4,6 +4,7 @@ const ConsultantFAB = () => {
   const [showModal, setShowModal] = useState(false);
   const [message, setMessage] = useState('');
   const [requestUrgent, setRequestUrgent] = useState(false);
+  const [messageType, setMessageType] = useState('consultant'); // 'consultant' or 'support'
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e) => {
@@ -49,7 +50,7 @@ const ConsultantFAB = () => {
                  rounded-full shadow-2xl shadow-purple-500/50 hover:shadow-purple-500/70
                  flex items-center justify-center text-2xl md:text-3xl z-[60]
                  transition-all duration-300 transform hover:scale-110 active:scale-95"
-        title="ارتباط با مشاور"
+        title="با من حرف بزن"
       >
         💬
       </button>
@@ -62,8 +63,8 @@ const ConsultantFAB = () => {
               <>
                 <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-200">ارتباط با مشاور</h2>
-                    <p className="text-gray-500 text-sm mt-1">پیام خود را برای مشاور ارسال کنید</p>
+                    <h2 className="text-3xl font-bold text-gray-200">با من حرف بزن</h2>
+                    <p className="text-gray-500 text-sm mt-1">پیام خود را ارسال کنید</p>
                   </div>
                   <button
                     onClick={handleClose}
@@ -74,6 +75,35 @@ const ConsultantFAB = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Message Type Selection */}
+                  <div>
+                    <label className="block text-gray-400 mb-3 text-sm">نوع پیام</label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setMessageType('consultant')}
+                        className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                          messageType === 'consultant'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-800 text-gray-400 hover:bg-gray-750'
+                        }`}
+                      >
+                        مشاوره درسی
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMessageType('support')}
+                        className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                          messageType === 'support'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-800 text-gray-400 hover:bg-gray-750'
+                        }`}
+                      >
+                        پشتیبانی سایت
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Message Field */}
                   <div>
                     <label className="block text-gray-400 mb-3 text-sm">پیام شما</label>

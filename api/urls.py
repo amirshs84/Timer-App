@@ -3,6 +3,7 @@ from .views import (
     request_otp,
     phone_login,
     UserProfileView,
+    update_study_status,
     SubjectListView,
     StudySessionListCreateView,
     DashboardStatsView,
@@ -25,6 +26,7 @@ urlpatterns = [
     path('auth/request-otp/', request_otp, name='request_otp'),
     path('auth/login/', phone_login, name='phone_login'),
     path('profile/', UserProfileView.as_view(), name='user_profile'),
+    path('profile/study-status/', update_study_status, name='update_study_status'),
     
     # Study Data
     path('subjects/', SubjectListView.as_view(), name='subject_list'),

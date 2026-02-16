@@ -87,6 +87,7 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     is_superadmin = models.BooleanField(default=False, verbose_name='سوپرادمین')
     is_profile_complete = models.BooleanField(default=False)
+    is_studying = models.BooleanField(default=False, verbose_name='در حال مطالعه')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -101,6 +102,7 @@ class UserProfile(models.Model):
 class Subject(models.Model):
     name = models.CharField(max_length=100)
     color_code = models.CharField(max_length=7)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subjects', null=True, blank=True)
 
     def __str__(self):
         return self.name

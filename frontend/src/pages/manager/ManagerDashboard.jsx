@@ -24,6 +24,22 @@ export default function ManagerDashboard() {
     search: ''
   });
 
+  // Olympiad field mapping to Persian
+  const olympiadMapping = {
+    'math': 'ریاضی',
+    'physics': 'فیزیک',
+    'chemistry': 'شیمی',
+    'biology': 'زیست‌شناسی',
+    'informatics': 'کامپیوتر',
+    'astronomy': 'نجوم',
+    'literature': 'ادبیات',
+    'none': '-'
+  };
+
+  const getOlympiadPersian = (field) => {
+    return olympiadMapping[field] || field || '-';
+  };
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -292,7 +308,7 @@ export default function ManagerDashboard() {
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center text-gray-600 text-sm font-medium">
-                        {student.olympiad_field || '-'}
+                        {getOlympiadPersian(student.olympiad_field)}
                       </td>
                       <td className="px-4 py-4 text-center">
                         <span className="font-mono font-bold text-gray-900 text-base">

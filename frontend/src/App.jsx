@@ -6,11 +6,13 @@ import Courses from './pages/Courses';
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import StudentProfile from './pages/manager/StudentProfile';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
+import WhatsNewModal from './components/WhatsNewModal';
 
 function App() {
   return (
     <div className="dark">
       <Router>
+        <WhatsNewModal />
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />

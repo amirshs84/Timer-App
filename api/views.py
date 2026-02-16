@@ -101,11 +101,29 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             serializer.save(is_profile_complete=True)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_study_status(request):
+    """Update user's is_studying status when timer starts/stops"""
+    is_studying = request.data.get('is_studying', False)
+    profile = request.user.profile
+    profile.is_studying = is_studying
+    profile.save()
+    return Response({'status': 'updated', 'is_studying': is_studying})
+
+
 class SubjectListView(generics.ListCreateAPIView):
-    """List all subjects or create new one"""
-    queryset = Subject.objects.all()
+    """List user's subjects or create new one"""
     serializer_class = SubjectSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        # Return only subjects created by this user
+        return Subject.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        # Automatically assign the current user
+        serializer.save(user=self.request.user)
 
 
 class StudySessionListCreateView(generics.ListCreateAPIView):
@@ -122,8 +140,10 @@ class StudySessionListCreateView(generics.ListCreateAPIView):
         subject_color = self.request.data.get('subject_color', '#10b981')
         
         if subject_data:
+            # Get or create subject for this specific user
             subject, _ = Subject.objects.get_or_create(
                 name=subject_data,
+                user=self.request.user,
                 defaults={'color_code': subject_color}
             )
             serializer.save(user=self.request.user, subject=subject)
@@ -257,12 +277,12 @@ class ManagerDashboardKPIView(views.APIView):
         ).values_list('user_id', flat=True).distinct()
         absent_count = total_students - len(set(active_users_today))
         
-        # Active now (sessions started in last 30 minutes without end_time or end_time in future)
-        active_now = StudySession.objects.filter(
-            user__profile__role='student',
-            start_time__gte=now - timedelta(minutes=30),
-            start_time__lte=now
-        ).values('user').distinct().count()
+        # Active now (students with is_studying=True in their profile)
+        active_now = UserProfile.objects.filter(
+            role='student',
+            school=manager_school,
+            is_studying=True
+        ).count()
         
         data = {
             'avg_study_today': avg_today_str,
@@ -389,10 +409,21 @@ class ManagerStudentProfileView(views.APIView):
     permission_classes = [IsAuthenticated, IsManager]
     
     def get(self, request, user_id):
+        # Ensure manager can only see students from their school
+        manager_profile = request.user.profile
+        manager_school = manager_profile.school
+        
+        if not manager_school:
+            return Response({'error': 'Manager has no school assigned'}, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
-            user = User.objects.get(id=user_id, profile__role='student')
+            user = User.objects.get(
+                id=user_id, 
+                profile__role='student',
+                profile__school=manager_school
+            )
         except User.DoesNotExist:
-            return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Student not found or not in your school'}, status=status.HTTP_404_NOT_FOUND)
         
         # Reuse the same logic as DashboardStatsView
         now = timezone.now()

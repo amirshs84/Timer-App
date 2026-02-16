@@ -46,6 +46,7 @@ export const authAPI = {
   login: (phoneNumber, otp) => api.post('auth/login/', { phone_number: phoneNumber, otp }),
   getProfile: () => api.get('profile/'),
   updateProfile: (data) => api.put('profile/', data),
+  updateStudyStatus: (isStudying) => api.post('profile/study-status/', { is_studying: isStudying }),
 };
 
 export const dataAPI = {

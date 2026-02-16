@@ -82,9 +82,16 @@ const StudyTimer = () => {
     }
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     const now = new Date();
     setStartTime(now);
+    
+    // Update study status to true when timer starts
+    try {
+      await authAPI.updateStudyStatus(true);
+    } catch (error) {
+      console.error('Error updating study status:', error);
+    }
     
     // Also update the ref inside the hook's scope if we could, 
     // but the hook handles its own start. 
@@ -105,10 +112,17 @@ const StudyTimer = () => {
     }
   }, [isActive, startTime]);
 
-  const handleStop = () => {
+  const handleStop = async () => {
     const studyTime = seconds;
     const end = new Date();
     setEndTime(end);
+    
+    // Update study status to false when timer stops
+    try {
+      await authAPI.updateStudyStatus(false);
+    } catch (error) {
+      console.error('Error updating study status:', error);
+    }
     
     // Always recalculate start time based on duration to ensure consistency
     // This fixes the issue where startTime might be missing or from a different base date (causing huge duration)
