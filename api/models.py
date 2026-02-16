@@ -24,11 +24,17 @@ class UserProfile(models.Model):
         ('none', 'ندارم'),
     ]
     
+    ROLE_CHOICES = [
+        ('student', 'دانش‌آموز'),
+        ('manager', 'مدیر'),
+    ]
+    
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone_number = models.CharField(max_length=11, unique=True)
     full_name = models.CharField(max_length=200, blank=True)
     grade = models.CharField(max_length=20, choices=GRADE_CHOICES, blank=True)
     olympiad_field = models.CharField(max_length=20, choices=OLYMPIAD_CHOICES, blank=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     is_profile_complete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

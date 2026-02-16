@@ -6,7 +6,13 @@ from .views import (
     SubjectListView,
     StudySessionListCreateView,
     DashboardStatsView,
-    CreateTicketView
+    CreateTicketView,
+    # Manager Panel Views
+    ManagerDashboardKPIView,
+    ManagerStudentListView,
+    ManagerStudentProfileView,
+    ManagerExportExcelView,
+    ManagerStudentReportPDFView
 )
 
 urlpatterns = [
@@ -22,4 +28,11 @@ urlpatterns = [
     
     # Support
     path('tickets/', CreateTicketView.as_view(), name='create_ticket'),
+    
+    # Manager Panel
+    path('manager/dashboard/', ManagerDashboardKPIView.as_view(), name='manager_dashboard_kpi'),
+    path('manager/students/', ManagerStudentListView.as_view(), name='manager_student_list'),
+    path('manager/students/<int:user_id>/profile/', ManagerStudentProfileView.as_view(), name='manager_student_profile'),
+    path('manager/export/excel/', ManagerExportExcelView.as_view(), name='manager_export_excel'),
+    path('manager/students/<int:user_id>/report/pdf/', ManagerStudentReportPDFView.as_view(), name='manager_student_pdf'),
 ]

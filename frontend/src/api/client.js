@@ -56,5 +56,18 @@ export const dataAPI = {
   getDashboardStats: () => api.get('dashboard/stats/'),
 };
 
+// Manager Panel API
+export const managerAPI = {
+  getDashboardKPI: () => api.get('manager/dashboard/'),
+  getStudentList: (params) => api.get('manager/students/', { params }),
+  getStudentProfile: (userId) => api.get(`manager/students/${userId}/profile/`),
+  exportExcel: (startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    return `${api.defaults.baseURL}manager/export/excel/?${params.toString()}`;
+  },
+};
+
 export default api;
 

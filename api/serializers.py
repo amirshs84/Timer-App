@@ -6,8 +6,8 @@ from .models import UserProfile, Subject, StudySession, ConsultantTicket
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ['phone_number', 'full_name', 'grade', 'olympiad_field', 'is_profile_complete']
-        read_only_fields = ['phone_number']
+        fields = ['phone_number', 'full_name', 'grade', 'olympiad_field', 'role', 'is_profile_complete']
+        read_only_fields = ['phone_number', 'role']
 
 
 class SubjectSerializer(serializers.ModelSerializer):
@@ -62,4 +62,41 @@ class ConsultantTicketSerializer(serializers.ModelSerializer):
 class PhoneLoginSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=15)
     otp = serializers.CharField(max_length=6)
+
+
+# Manager Panel Serializers
+class ManagerStudentListSerializer(serializers.ModelSerializer):
+    """Serializer for student list in manager panel"""
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    today_total = serializers.IntegerField(read_only=True)
+    week_total = serializers.IntegerField(read_only=True)
+    trend = serializers.CharField(read_only=True)
+    trend_percent = serializers.FloatField(read_only=True)
+    last_activity = serializers.DateTimeField(read_only=True)
+    
+    class Meta:
+        model = UserProfile
+        fields = [
+            'user_id',
+            'full_name',
+            'phone_number',
+            'grade',
+            'olympiad_field',
+            'today_total',
+            'week_total',
+            'trend',
+            'trend_percent',
+            'last_activity'
+        ]
+
+
+class ManagerDashboardKPISerializer(serializers.Serializer):
+    """Serializer for KPI cards in manager dashboard"""
+    avg_study_today = serializers.CharField()
+    avg_study_today_seconds = serializers.IntegerField()
+    change_percent = serializers.FloatField()
+    top_student = serializers.DictField()
+    absent_count = serializers.IntegerField()
+    active_now = serializers.IntegerField()
+    total_students = serializers.IntegerField()
 

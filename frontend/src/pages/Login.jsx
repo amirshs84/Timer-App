@@ -42,13 +42,20 @@ const Login = () => {
             try {
                 // Verify token by fetching profile
                 const res = await authAPI.getProfile();
-                if (res.data.is_profile_complete) {
-                    navigate('/timer');
+                const profile = res.data;
+                
+                // Check user role and redirect accordingly
+                if (profile.is_profile_complete) {
+                    if (profile.role === 'manager') {
+                        navigate('/manager');
+                    } else {
+                        navigate('/timer');
+                    }
                 } else {
                     // Profile incomplete, go to step 3
-                    setFullName(res.data.full_name || '');
-                    setGrade(res.data.grade || '');
-                    setOlympiadField(res.data.olympiad_field || '');
+                    setFullName(profile.full_name || '');
+                    setGrade(profile.grade || '');
+                    setOlympiadField(profile.olympiad_field || '');
                     setStep(3);
                 }
             } catch (e) {
@@ -101,13 +108,19 @@ const Login = () => {
             localStorage.setItem('userName', profile.full_name || '');
             localStorage.setItem('userGrade', profile.grade || '');
             localStorage.setItem('userOlympiad', profile.olympiad_field || '');
+            localStorage.setItem('userRole', profile.role || 'student');
         }
 
         if (is_new_user) {
             setStep(3);
         } else {
             localStorage.setItem('profileComplete', 'true');
-            navigate('/timer');
+            // Redirect based on user role
+            if (profile.role === 'manager') {
+                navigate('/manager');
+            } else {
+                navigate('/timer');
+            }
         }
 
     } catch (err) {
@@ -127,7 +140,7 @@ const Login = () => {
     if (!olympiadField) { setError('لطفا رشته المپیاد خود را انتخاب کنید'); setLoading(false); return; }
 
     try {
-        await authAPI.updateProfile({
+        const res = await authAPI.updateProfile({
             full_name: fullName,
             grade: grade,
             olympiad_field: olympiadField
@@ -138,7 +151,14 @@ const Login = () => {
         localStorage.setItem('userGrade', grade);
         localStorage.setItem('userOlympiad', olympiadField);
 
-        navigate('/timer');
+        // Check role from updated profile
+        const userRole = res.data.role || localStorage.getItem('userRole') || 'student';
+        
+        if (userRole === 'manager') {
+            navigate('/manager');
+        } else {
+            navigate('/timer');
+        }
     } catch (err) {
         setError('خطا در ذخیره اطلاعات. لطفا دوباره تلاش کنید.');
         console.error(err);
