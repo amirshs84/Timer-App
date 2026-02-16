@@ -69,5 +69,15 @@ export const managerAPI = {
   },
 };
 
+// SuperAdmin Panel API
+export const superadminAPI = {
+  getSchools: () => api.get('superadmin/schools/'),
+  createSchool: (data) => api.post('superadmin/schools/', data),
+  updateSchool: (id, data) => api.put(`superadmin/schools/${id}/`, data),
+  deleteSchool: (id) => api.delete(`superadmin/schools/${id}/`),
+  assignManager: (schoolId, data) => api.post(`superadmin/schools/${schoolId}/assign-manager/`, data),
+  getSchoolMembers: (schoolId) => api.get(`superadmin/schools/${schoolId}/members/`),
+};
+
 export default api;
 

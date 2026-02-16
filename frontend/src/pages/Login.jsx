@@ -10,6 +10,7 @@ const Login = () => {
   const [fullName, setFullName] = useState('');
   const [grade, setGrade] = useState('');
   const [olympiadField, setOlympiadField] = useState('');
+  const [invitationCode, setInvitationCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +47,9 @@ const Login = () => {
                 
                 // Check user role and redirect accordingly
                 if (profile.is_profile_complete) {
-                    if (profile.role === 'manager') {
+                    if (profile.is_superadmin) {
+                        navigate('/superadmin');
+                    } else if (profile.role === 'manager') {
                         navigate('/manager');
                     } else {
                         navigate('/timer');
@@ -116,7 +119,9 @@ const Login = () => {
         } else {
             localStorage.setItem('profileComplete', 'true');
             // Redirect based on user role
-            if (profile.role === 'manager') {
+            if (profile.is_superadmin) {
+                navigate('/superadmin');
+            } else if (profile.role === 'manager') {
                 navigate('/manager');
             } else {
                 navigate('/timer');
@@ -138,12 +143,14 @@ const Login = () => {
     if (!fullName.trim()) { setError('لطفا نام و نام خانوادگی خود را وارد کنید'); setLoading(false); return; }
     if (!grade) { setError('لطفا پایه تحصیلی خود را انتخاب کنید'); setLoading(false); return; }
     if (!olympiadField) { setError('لطفا رشته المپیاد خود را انتخاب کنید'); setLoading(false); return; }
+    if (!invitationCode.trim()) { setError('لطفا کد دعوت مدرسه را وارد کنید'); setLoading(false); return; }
 
     try {
         const res = await authAPI.updateProfile({
             full_name: fullName,
             grade: grade,
-            olympiad_field: olympiadField
+            olympiad_field: olympiadField,
+            invitation_code: invitationCode
         });
 
         localStorage.setItem('profileComplete', 'true');
@@ -376,6 +383,27 @@ const Login = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-emerald-300/90 mb-2 text-sm font-medium">
+                  کد دعوت مدرسه
+                </label>
+                <input
+                  type="text"
+                  value={invitationCode}
+                  onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
+                  placeholder="مثال: ABC12XYZ"
+                  className="w-full px-4 py-3 bg-gray-950/50 text-white rounded-xl border border-gray-700 
+                           focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20
+                           transition-all uppercase tracking-wider font-mono"
+                  maxLength={8}
+                  required
+                  disabled={loading}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 کد دعوت را از مدیر مدرسه خود دریافت کنید
+                </p>
               </div>
 
               {error && (

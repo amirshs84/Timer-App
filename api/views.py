@@ -9,7 +9,7 @@ from django.db.models import Sum, Max, Count, Q, F
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from datetime import timedelta, datetime
-from .models import UserProfile, Subject, StudySession, ConsultantTicket
+from .models import UserProfile, Subject, StudySession, ConsultantTicket, School
 from .serializers import (
     PhoneLoginSerializer,
     UserProfileSerializer,
@@ -17,9 +17,11 @@ from .serializers import (
     StudySessionSerializer,
     ConsultantTicketSerializer,
     ManagerStudentListSerializer,
-    ManagerDashboardKPISerializer
+    ManagerDashboardKPISerializer,
+    SchoolSerializer,
+    AssignManagerSerializer
 )
-from .permissions import IsManager
+from .permissions import IsManager, IsSuperAdmin
 
 
 @api_view(['POST'])
@@ -85,7 +87,18 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user.profile
 
     def perform_update(self, serializer):
-        serializer.save(is_profile_complete=True)
+        # Check if invitation_code is provided
+        invitation_code = self.request.data.get('invitation_code')
+        
+        if invitation_code:
+            try:
+                school = School.objects.get(invitation_code=invitation_code, is_active=True)
+                serializer.save(is_profile_complete=True, school=school)
+            except School.DoesNotExist:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({'invitation_code': 'کد دعوت نامعتبر است'})
+        else:
+            serializer.save(is_profile_complete=True)
 
 
 class SubjectListView(generics.ListCreateAPIView):
@@ -169,8 +182,17 @@ class ManagerDashboardKPIView(views.APIView):
         yesterday_start = today_start - timedelta(days=1)
         yesterday_end = today_start
         
-        # Get all students (exclude managers)
-        students = User.objects.filter(profile__role='student')
+        # Get all students in the manager's school
+        manager_school = request.user.profile.school
+        if not manager_school:
+            return Response({
+                'error': 'مدیر به هیچ مدرسه‌ای متصل نیست'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        students = User.objects.filter(
+            profile__role='student',
+            profile__school=manager_school
+        )
         total_students = students.count()
         
         if total_students == 0:
@@ -263,13 +285,23 @@ class ManagerStudentListView(views.APIView):
     permission_classes = [IsAuthenticated, IsManager]
     
     def get(self, request):
+        # Check if manager has a school
+        manager_school = request.user.profile.school
+        if not manager_school:
+            return Response({
+                'error': 'مدیر به هیچ مدرسه‌ای متصل نیست'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         # Get filter parameters
         grade_filter = request.query_params.get('grade', None)
         olympiad_filter = request.query_params.get('olympiad', None)
         search = request.query_params.get('search', None)
         
-        # Base queryset
-        students = UserProfile.objects.filter(role='student')
+        # Base queryset - only students in manager's school
+        students = UserProfile.objects.filter(
+            role='student',
+            school=manager_school
+        )
         
         # Apply filters
         if grade_filter:
@@ -494,4 +526,102 @@ class ManagerStudentReportPDFView(views.APIView):
             {'message': 'PDF generation will be implemented in next phase. For now, use Excel export.'},
             status=status.HTTP_501_NOT_IMPLEMENTED
         )
+
+
+# ==================== SuperAdmin Panel Views ====================
+
+class SuperAdminSchoolListCreateView(generics.ListCreateAPIView):
+    """
+    List all schools or create a new school (SuperAdmin only)
+    """
+    serializer_class = SchoolSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    queryset = School.objects.all()
+
+
+class SuperAdminSchoolDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Get, update or delete a specific school (SuperAdmin only)
+    """
+    serializer_class = SchoolSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    queryset = School.objects.all()
+
+
+class SuperAdminAssignManagerView(views.APIView):
+    """
+    Assign a manager to a school (SuperAdmin only)
+    """
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    
+    def post(self, request, school_id):
+        try:
+            school = School.objects.get(id=school_id)
+        except School.DoesNotExist:
+            return Response({'error': 'مدرسه یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = AssignManagerSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        phone_number = serializer.validated_data['phone_number']
+        
+        # Get or create user with this phone number
+        user, created = User.objects.get_or_create(username=phone_number)
+        profile, _ = UserProfile.objects.get_or_create(
+            user=user,
+            defaults={'phone_number': phone_number}
+        )
+        
+        # Remove manager role from previous manager of this school (if exists)
+        previous_managers = UserProfile.objects.filter(school=school, role='manager')
+        for prev_manager in previous_managers:
+            prev_manager.role = 'student'
+            prev_manager.save()
+        
+        # Assign new manager
+        profile.school = school
+        profile.role = 'manager'
+        profile.save()
+        
+        return Response({
+            'message': f'مدیر با شماره {phone_number} به مدرسه {school.name} اختصاص یافت',
+            'manager': {
+                'phone_number': phone_number,
+                'full_name': profile.full_name or 'تعیین نشده',
+                'school': school.name
+            }
+        })
+
+
+class SuperAdminSchoolMembersView(views.APIView):
+    """
+    Get list of all members (students + manager) of a school
+    """
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    
+    def get(self, request, school_id):
+        try:
+            school = School.objects.get(id=school_id)
+        except School.DoesNotExist:
+            return Response({'error': 'مدرسه یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+        
+        members = UserProfile.objects.filter(school=school)
+        
+        members_data = []
+        for profile in members:
+            members_data.append({
+                'id': profile.user.id,
+                'full_name': profile.full_name,
+                'phone_number': profile.phone_number,
+                'role': profile.get_role_display(),
+                'grade': profile.get_grade_display() if profile.grade else '-',
+                'is_profile_complete': profile.is_profile_complete
+            })
+        
+        return Response({
+            'school': SchoolSerializer(school).data,
+            'members': members_data,
+            'total_count': len(members_data)
+        })
 

@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserProfile, Subject, StudySession, ConsultantTicket
+from .models import UserProfile, Subject, StudySession, ConsultantTicket, School
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ['phone_number', 'full_name', 'grade', 'olympiad_field', 'role', 'is_profile_complete']
-        read_only_fields = ['phone_number', 'role']
+        fields = ['phone_number', 'full_name', 'grade', 'olympiad_field', 'role', 'is_superadmin', 'is_profile_complete']
+        read_only_fields = ['phone_number', 'role', 'is_superadmin']
 
 
 class SubjectSerializer(serializers.ModelSerializer):
@@ -99,4 +99,42 @@ class ManagerDashboardKPISerializer(serializers.Serializer):
     absent_count = serializers.IntegerField()
     active_now = serializers.IntegerField()
     total_students = serializers.IntegerField()
+
+
+# SuperAdmin Serializers
+class SchoolSerializer(serializers.ModelSerializer):
+    """Serializer for School model"""
+    member_count = serializers.SerializerMethodField()
+    manager_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = School
+        fields = [
+            'id',
+            'name',
+            'invitation_code',
+            'normal_study_threshold',
+            'is_active',
+            'member_count',
+            'manager_name',
+            'created_at'
+        ]
+        read_only_fields = ['invitation_code', 'created_at']
+    
+    def get_member_count(self, obj):
+        return obj.members.filter(role='student').count()
+    
+    def get_manager_name(self, obj):
+        manager = obj.members.filter(role='manager').first()
+        return manager.full_name if manager else 'تعیین نشده'
+
+
+class AssignManagerSerializer(serializers.Serializer):
+    """Serializer for assigning a manager to a school"""
+    phone_number = serializers.CharField(max_length=11)
+    
+    def validate_phone_number(self, value):
+        if not value.startswith('09') or len(value) != 11:
+            raise serializers.ValidationError('شماره تلفن معتبر نیست')
+        return value
 

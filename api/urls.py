@@ -12,7 +12,12 @@ from .views import (
     ManagerStudentListView,
     ManagerStudentProfileView,
     ManagerExportExcelView,
-    ManagerStudentReportPDFView
+    ManagerStudentReportPDFView,
+    # SuperAdmin Panel Views
+    SuperAdminSchoolListCreateView,
+    SuperAdminSchoolDetailView,
+    SuperAdminAssignManagerView,
+    SuperAdminSchoolMembersView
 )
 
 urlpatterns = [
@@ -35,4 +40,10 @@ urlpatterns = [
     path('manager/students/<int:user_id>/profile/', ManagerStudentProfileView.as_view(), name='manager_student_profile'),
     path('manager/export/excel/', ManagerExportExcelView.as_view(), name='manager_export_excel'),
     path('manager/students/<int:user_id>/report/pdf/', ManagerStudentReportPDFView.as_view(), name='manager_student_pdf'),
+    
+    # SuperAdmin Panel
+    path('superadmin/schools/', SuperAdminSchoolListCreateView.as_view(), name='superadmin_schools'),
+    path('superadmin/schools/<int:pk>/', SuperAdminSchoolDetailView.as_view(), name='superadmin_school_detail'),
+    path('superadmin/schools/<int:school_id>/assign-manager/', SuperAdminAssignManagerView.as_view(), name='superadmin_assign_manager'),
+    path('superadmin/schools/<int:school_id>/members/', SuperAdminSchoolMembersView.as_view(), name='superadmin_school_members'),
 ]

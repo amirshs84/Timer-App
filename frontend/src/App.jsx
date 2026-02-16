@@ -5,6 +5,7 @@ import StudyTimer from './pages/StudyTimer';
 import Courses from './pages/Courses';
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import StudentProfile from './pages/manager/StudentProfile';
+import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 
 function App() {
   return (
@@ -22,6 +23,9 @@ function App() {
           {/* Manager Routes */}
           <Route path="/manager" element={<ManagerDashboard />} />
           <Route path="/manager/student/:userId" element={<StudentProfile />} />
+          
+          {/* SuperAdmin Routes */}
+          <Route path="/superadmin" element={<SuperAdminDashboard />} />
           
           {/* Redirect old routes */}
           <Route path="/home" element={<Navigate to="/timer" replace />} />
