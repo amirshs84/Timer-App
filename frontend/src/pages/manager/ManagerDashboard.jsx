@@ -5,12 +5,12 @@ import KPICard from '../../components/manager/KPICard';
 import TrendIndicator from '../../components/manager/TrendIndicator';
 import { 
   HiAcademicCap, 
-  HiTrophy, 
   HiExclamationCircle, 
   HiUserGroup,
   HiSearch,
   HiDownload,
-  HiFilter
+  HiFilter,
+  HiStar // Use HiStar instead of HiTrophy for v1 compatibility
 } from 'react-icons/hi';
 
 export default function ManagerDashboard() {
@@ -147,7 +147,7 @@ export default function ManagerDashboard() {
             title="فعال‌ترین دانش‌آموز"
             value={kpiData.top_student.name}
             subtitle={formatSeconds(kpiData.top_student.total)}
-            icon={HiTrophy}
+            icon={HiStar}
             colorClass="from-amber-500/90 to-orange-600/90"
           />
           
