@@ -112,6 +112,11 @@ def register_with_password(request):
         
         profile = user.profile
         profile.is_password_set = True
+        
+        # If manager, skip profile completion
+        if profile.role == 'manager':
+            profile.is_profile_complete = True
+            
         profile.save()
         
         # Generate tokens
@@ -238,6 +243,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     def perform_update(self, serializer):
         # Check if invitation_code is provided
         invitation_code = self.request.data.get('invitation_code')
+        user_profile = self.get_object()
         
         if invitation_code:
             try:
@@ -246,8 +252,13 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             except School.DoesNotExist:
                 from rest_framework.exceptions import ValidationError
                 raise ValidationError({'invitation_code': 'کد دعوت نامعتبر است'})
+        elif user_profile.school:
+             # User already has a school, just update other fields
+             serializer.save(is_profile_complete=True)
         else:
-            serializer.save(is_profile_complete=True)
+            # No code and no school
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'invitation_code': 'کد دعوت الزامی است'})
 
 
 @api_view(['POST'])

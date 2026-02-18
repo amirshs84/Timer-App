@@ -177,7 +177,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
 
-    if (!fullName || !grade || !olympiadField) {
+    if (!fullName || !grade || !olympiadField || !invitationCode) {
       setError('لطفا تمام فیلدها را پر کنید');
       return;
     }
@@ -432,13 +432,13 @@ const Login = () => {
 
               <div>
                 <label className="block text-gray-300 mb-2 text-sm font-medium">
-                  کد دعوت مدرسه (اختیاری)
+                  کد دعوت مدرسه <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
                   value={invitationCode}
                   onChange={(e) => setInvitationCode(e.target.value)}
-                  placeholder="کد دعوت (در صورت داشتن)"
+                  placeholder="کد دعوت"
                   className="w-full px-4 py-3 bg-gray-900/50 text-white rounded-xl border border-gray-600 
                            focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 
                            transition-all"
