@@ -164,7 +164,19 @@ const Login = () => {
         localStorage.setItem('accessToken', res.data.access);
         localStorage.setItem('refreshToken', res.data.refresh);
         localStorage.setItem('isLoggedIn', 'true');
-        setStep(3);
+        
+        const profile = res.data.profile;
+        if (profile.is_profile_complete) {
+          if (profile.is_superadmin) {
+            navigate('/superadmin');
+          } else if (profile.role === 'manager') {
+            navigate('/manager');
+          } else {
+            navigate('/timer');
+          }
+        } else {
+          setStep(3);
+        }
       } catch (error) {
         setError(error.response?.data?.error || 'خطا در ثبت نام');
       } finally {
