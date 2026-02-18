@@ -87,6 +87,7 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     is_superadmin = models.BooleanField(default=False, verbose_name='سوپرادمین')
     is_profile_complete = models.BooleanField(default=False)
+    is_password_set = models.BooleanField(default=False, verbose_name='رمز عبور تنظیم شده')
     is_studying = models.BooleanField(default=False, verbose_name='در حال مطالعه')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -2,6 +2,9 @@ from django.urls import path
 from .views import (
     request_otp,
     phone_login,
+    check_phone,
+    register_with_password,
+    login_with_password,
     UserProfileView,
     update_study_status,
     SubjectListView,
@@ -22,9 +25,15 @@ from .views import (
 )
 
 urlpatterns = [
-    # Auth & Profile
+    # Auth & Profile - New Password-based
+    path('auth/check-phone/', check_phone, name='check_phone'),
+    path('auth/register/', register_with_password, name='register'),
+    path('auth/login/', login_with_password, name='login'),
+    
+    # Auth & Profile - Legacy OTP
     path('auth/request-otp/', request_otp, name='request_otp'),
-    path('auth/login/', phone_login, name='phone_login'),
+    path('auth/otp-login/', phone_login, name='phone_login'),
+    
     path('profile/', UserProfileView.as_view(), name='user_profile'),
     path('profile/study-status/', update_study_status, name='update_study_status'),
     

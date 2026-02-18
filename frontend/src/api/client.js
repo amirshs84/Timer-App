@@ -42,8 +42,19 @@ api.interceptors.response.use(
 );
 
 export const authAPI = {
+  // New password-based auth
+  checkPhone: (phoneNumber) => api.post('auth/check-phone/', { phone_number: phoneNumber }),
+  register: (phoneNumber, password, passwordConfirm) => api.post('auth/register/', { 
+    phone_number: phoneNumber, 
+    password, 
+    password_confirm: passwordConfirm 
+  }),
+  login: (phoneNumber, password) => api.post('auth/login/', { phone_number: phoneNumber, password }),
+  
+  // Legacy OTP
   requestOtp: (phoneNumber) => api.post('auth/request-otp/', { phone_number: phoneNumber }),
-  login: (phoneNumber, otp) => api.post('auth/login/', { phone_number: phoneNumber, otp }),
+  otpLogin: (phoneNumber, otp) => api.post('auth/otp-login/', { phone_number: phoneNumber, otp }),
+  
   getProfile: () => api.get('profile/'),
   updateProfile: (data) => api.put('profile/', data),
   updateStudyStatus: (isStudying) => api.post('profile/study-status/', { is_studying: isStudying }),

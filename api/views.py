@@ -24,6 +24,139 @@ from .serializers import (
 from .permissions import IsManager, IsSuperAdmin
 
 
+import re
+from django.contrib.auth.hashers import make_password, check_password
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_phone(request):
+    """Check if phone number exists in database"""
+    phone_number = request.data.get('phone_number')
+    if not phone_number:
+        return Response({'error': 'شماره تلفن الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = User.objects.get(username=phone_number)
+        profile = user.profile
+        return Response({
+            'exists': True,
+            'has_password': profile.is_password_set
+        })
+    except User.DoesNotExist:
+        return Response({
+            'exists': False,
+            'has_password': False
+        })
+
+
+def validate_password(password):
+    """
+    Validate password requirements:
+    - At least 8 characters
+    - Contains uppercase letter
+    - Contains lowercase letter
+    - Contains number
+    - Contains special character
+    """
+    if len(password) < 8:
+        return False, 'رمز عبور باید حداقل ۸ کاراکتر باشد'
+    
+    if not re.search(r'[A-Z]', password):
+        return False, 'رمز عبور باید حداقل یک حرف بزرگ انگلیسی داشته باشد'
+    
+    if not re.search(r'[a-z]', password):
+        return False, 'رمز عبور باید حداقل یک حرف کوچک انگلیسی داشته باشد'
+    
+    if not re.search(r'[0-9]', password):
+        return False, 'رمز عبور باید حداقل یک عدد داشته باشد'
+    
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return False, 'رمز عبور باید حداقل یک علامت (!@#$%^&*...) داشته باشد'
+    
+    return True, ''
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_with_password(request):
+    """Register new user with password"""
+    phone_number = request.data.get('phone_number')
+    password = request.data.get('password')
+    password_confirm = request.data.get('password_confirm')
+    
+    if not phone_number or not password or not password_confirm:
+        return Response({'error': 'همه فیلدها الزامی هستند'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if passwords match
+    if password != password_confirm:
+        return Response({'error': 'رمزهای عبور مطابقت ندارند'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Validate password
+    is_valid, error_message = validate_password(password)
+    if not is_valid:
+        return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if user already exists
+    if User.objects.filter(username=phone_number).exists():
+        return Response({'error': 'این شماره قبلاً ثبت شده است'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Create user with password
+    user = User.objects.create(
+        username=phone_number,
+        password=make_password(password)
+    )
+    
+    profile = UserProfile.objects.create(
+        user=user,
+        phone_number=phone_number,
+        is_password_set=True
+    )
+    
+    # Generate tokens
+    refresh = RefreshToken.for_user(user)
+    
+    return Response({
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+        'profile': UserProfileSerializer(profile).data,
+        'is_new_user': True
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_with_password(request):
+    """Login existing user with password"""
+    phone_number = request.data.get('phone_number')
+    password = request.data.get('password')
+    
+    if not phone_number or not password:
+        return Response({'error': 'شماره تلفن و رمز عبور الزامی هستند'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = User.objects.get(username=phone_number)
+        profile = user.profile
+        
+        # Check password
+        if not check_password(password, user.password):
+            return Response({'error': 'رمز عبور اشتباه است'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'profile': UserProfileSerializer(profile).data,
+            'is_new_user': not profile.is_profile_complete
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'کاربری با این شماره یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# Legacy OTP endpoints (keeping for backward compatibility)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def request_otp(request):
@@ -36,11 +169,6 @@ def request_otp(request):
     if not phone_number:
         return Response({'error': 'Phone number is required'}, status=status.HTTP_400_BAD_REQUEST)
     
-    # In a real app, generate random code and send SMS here
-    # code = generate_random_code()
-    # send_sms(phone_number, code)
-    # cache.set(f"otp_{phone_number}", code, timeout=300)
-    
     return Response({'message': 'OTP sent', 'dev_code': '12345'})
 
 
@@ -52,14 +180,12 @@ def phone_login(request):
         phone_number = serializer.validated_data['phone_number']
         otp = serializer.validated_data['otp']
         
-        # Simple OTP check
         if otp != '12345':
             return Response(
                 {'error': 'Invalid OTP'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Get or create User and UserProfile
         user, created = User.objects.get_or_create(username=phone_number)
         profile, _ = UserProfile.objects.get_or_create(
             user=user,
@@ -404,7 +530,7 @@ class ManagerStudentListView(views.APIView):
 
 class ManagerStudentProfileView(views.APIView):
     """
-    Get detailed profile of a specific student (returns same data as student's dashboard)
+    Get detailed profile of a specific student (returns complete dashboard data)
     """
     permission_classes = [IsAuthenticated, IsManager]
     
@@ -425,7 +551,7 @@ class ManagerStudentProfileView(views.APIView):
         except User.DoesNotExist:
             return Response({'error': 'Student not found or not in your school'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Reuse the same logic as DashboardStatsView
+        # Get time-based stats
         now = timezone.now()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = now - timedelta(days=7)
@@ -437,6 +563,50 @@ class ManagerStudentProfileView(views.APIView):
                 start_time__gte=start_date
             ).aggregate(total=Sum('duration_seconds'))['total'] or 0
         
+        # Get recent sessions (last 10)
+        recent_sessions = StudySession.objects.filter(user=user).order_by('-start_time')[:10]
+        sessions_data = []
+        for session in recent_sessions:
+            sessions_data.append({
+                'id': session.id,
+                'subject': session.subject.name if session.subject else 'بدون موضوع',
+                'subject_color': session.subject.color_code if session.subject else '#gray',
+                'duration_seconds': session.duration_seconds,
+                'start_time': session.start_time.isoformat(),
+                'end_time': session.end_time.isoformat() if session.end_time else None,
+                'description': session.description or ''
+            })
+        
+        # Get subject breakdown (total time per subject)
+        subject_stats = StudySession.objects.filter(user=user).values(
+            'subject__name', 'subject__color_code'
+        ).annotate(
+            total_seconds=Sum('duration_seconds')
+        ).order_by('-total_seconds')
+        
+        subjects_breakdown = []
+        for stat in subject_stats:
+            if stat['subject__name']:
+                subjects_breakdown.append({
+                    'name': stat['subject__name'],
+                    'color': stat['subject__color_code'] or '#10b981',
+                    'total_seconds': stat['total_seconds']
+                })
+        
+        # Get heatmap data (last 60 days)
+        heatmap_start = now - timedelta(days=60)
+        heatmap_sessions = StudySession.objects.filter(
+            user=user,
+            start_time__gte=heatmap_start
+        ).values('start_time__date').annotate(
+            total_seconds=Sum('duration_seconds')
+        )
+        
+        heatmap_data = {}
+        for item in heatmap_sessions:
+            date_str = item['start_time__date'].isoformat()
+            heatmap_data[date_str] = item['total_seconds']
+        
         stats = {
             'student_name': user.profile.full_name,
             'phone_number': user.profile.phone_number,
@@ -445,7 +615,10 @@ class ManagerStudentProfileView(views.APIView):
             'today': get_duration(today_start),
             'week': get_duration(week_start),
             'month': get_duration(month_start),
-            'total_sessions': StudySession.objects.filter(user=user).count()
+            'total_sessions': StudySession.objects.filter(user=user).count(),
+            'recent_sessions': sessions_data,
+            'subjects_breakdown': subjects_breakdown,
+            'heatmap_data': heatmap_data
         }
         
         return Response(stats)
