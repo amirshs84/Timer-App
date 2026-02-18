@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { HiPlus, HiOfficeBuilding, HiUserGroup, HiKey } from 'react-icons/hi';
+import { useNavigate } from 'react-router-dom';
+import { HiPlus, HiOfficeBuilding, HiUserGroup, HiKey, HiLogout } from 'react-icons/hi';
 import { superadminAPI } from '../../api/client';
 
 export default function SuperAdminDashboard() {
+  const navigate = useNavigate();
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -72,6 +74,15 @@ export default function SuperAdminDashboard() {
     return (seconds / 3600).toFixed(1);
   };
 
+  const handleLogout = () => {
+    if (window.confirm('آیا می‌خواهید از حساب کاربری خارج شوید؟')) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('isLoggedIn');
+      navigate('/login');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-gray-50 flex items-center justify-center">
@@ -92,13 +103,22 @@ export default function SuperAdminDashboard() {
             <h1 className="text-3xl font-black mb-2 tracking-tight">پنل سوپرادمین</h1>
             <p className="text-purple-100 text-sm font-medium">مدیریت مدارس و دسترسی‌ها</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-white text-purple-700 rounded-xl hover:bg-purple-50 transition-all font-bold flex items-center gap-2 shadow-lg hover:scale-105 transform"
-          >
-            <HiPlus className="text-xl" />
-            افزودن مدرسه جدید
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-6 py-3 bg-white text-purple-700 rounded-xl hover:bg-purple-50 transition-all font-bold flex items-center gap-2 shadow-lg hover:scale-105 transform"
+            >
+              <HiPlus className="text-xl" />
+              افزودن مدرسه جدید
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all font-bold flex items-center gap-2 border border-white/20 backdrop-blur-sm"
+            >
+              <HiLogout className="text-xl" />
+              خروج
+            </button>
+          </div>
         </div>
       </div>
 

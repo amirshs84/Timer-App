@@ -10,7 +10,8 @@ import {
   HiSearch,
   HiDownload,
   HiFilter,
-  HiStar // Use HiStar instead of HiTrophy for v1 compatibility
+  HiStar, // Use HiStar instead of HiTrophy for v1 compatibility
+  HiLogout
 } from 'react-icons/hi';
 
 export default function ManagerDashboard() {
@@ -30,7 +31,7 @@ export default function ManagerDashboard() {
     'physics': 'فیزیک',
     'chemistry': 'شیمی',
     'biology': 'زیست‌شناسی',
-    'informatics': 'کامپیوتر',
+    'computer': 'کامپیوتر',
     'astronomy': 'نجوم',
     'literature': 'ادبیات',
     'none': '-'
@@ -38,6 +39,15 @@ export default function ManagerDashboard() {
 
   const getOlympiadPersian = (field) => {
     return olympiadMapping[field] || field || '-';
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('آیا می‌خواهید از حساب کاربری خارج شوید؟')) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('isLoggedIn');
+      navigate('/login');
+    }
   };
 
   useEffect(() => {
@@ -141,9 +151,18 @@ export default function ManagerDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-gray-50 pb-20">
       {/* Header with Gradient */}
       <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white p-8 sticky top-0 z-10 shadow-2xl backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-black mb-2 tracking-tight">پنل مدیریت</h1>
-          <p className="text-emerald-100 text-sm font-medium">نمای کلی عملکرد دانش‌آموزان</p>
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-black mb-2 tracking-tight">پنل مدیریت</h1>
+            <p className="text-emerald-100 text-sm font-medium">نمای کلی عملکرد دانش‌آموزان</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm font-semibold backdrop-blur-sm border border-white/10"
+          >
+            <HiLogout className="text-xl" />
+            خروج
+          </button>
         </div>
       </div>
 

@@ -65,29 +65,18 @@ class PhoneLoginSerializer(serializers.Serializer):
 
 
 # Manager Panel Serializers
-class ManagerStudentListSerializer(serializers.ModelSerializer):
+class ManagerStudentListSerializer(serializers.Serializer):
     """Serializer for student list in manager panel"""
-    user_id = serializers.IntegerField(source='user.id', read_only=True)
-    today_total = serializers.IntegerField(read_only=True)
-    week_total = serializers.IntegerField(read_only=True)
-    trend = serializers.CharField(read_only=True)
-    trend_percent = serializers.FloatField(read_only=True)
-    last_activity = serializers.DateTimeField(read_only=True)
-    
-    class Meta:
-        model = UserProfile
-        fields = [
-            'user_id',
-            'full_name',
-            'phone_number',
-            'grade',
-            'olympiad_field',
-            'today_total',
-            'week_total',
-            'trend',
-            'trend_percent',
-            'last_activity'
-        ]
+    user_id = serializers.IntegerField()
+    full_name = serializers.CharField()
+    phone_number = serializers.CharField()
+    grade = serializers.CharField()
+    olympiad_field = serializers.CharField()
+    today_total = serializers.IntegerField()
+    week_total = serializers.IntegerField()
+    trend = serializers.CharField()
+    trend_percent = serializers.FloatField()
+    last_activity = serializers.DateTimeField(allow_null=True)
 
 
 class ManagerDashboardKPISerializer(serializers.Serializer):
