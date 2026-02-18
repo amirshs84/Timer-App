@@ -207,14 +207,19 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-gray-700">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-black to-teal-950 text-white flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-10" style={{
+        backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
+        backgroundSize: '40px 40px'
+      }}></div>
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="bg-gray-900/60 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-emerald-500/30">
           {/* Logo/Header */}
           <div className="text-center mb-8">
-            <div className="text-6xl mb-4">📚</div>
+            <div className="text-6xl mb-4 drop-shadow-lg">📚</div>
             <h1 className="text-3xl font-bold text-white mb-2">سامانه مطالعه</h1>
-            <p className="text-gray-400">ورود و ثبت‌نام</p>
+            <p className="text-emerald-200/80">ورود و ثبت‌نام</p>
           </div>
 
           {error && (

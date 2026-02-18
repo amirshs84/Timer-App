@@ -536,20 +536,32 @@ class ManagerStudentProfileView(views.APIView):
     
     def get(self, request, user_id):
         # Ensure manager can only see students from their school
-        manager_profile = request.user.profile
-        manager_school = manager_profile.school
+        try:
+            manager_profile = request.user.profile
+            manager_school = manager_profile.school
+        except UserProfile.DoesNotExist:
+            return Response({'error': 'Manager profile not found'}, status=status.HTTP_400_BAD_REQUEST)
         
         if not manager_school:
             return Response({'error': 'Manager has no school assigned'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            user = User.objects.get(
-                id=user_id, 
-                profile__role='student',
-                profile__school=manager_school
-            )
+            # First get the user to ensure existence
+            user = User.objects.get(id=user_id)
+            
+            # Then check if they are a student in the manager's school
+            # We use filter to avoid DoesNotExist if profile is missing (though unlikely)
+            if not hasattr(user, 'profile'):
+                 return Response({'error': 'User has no profile'}, status=status.HTTP_404_NOT_FOUND)
+                 
+            if user.profile.role != 'student':
+                 return Response({'error': 'User is not a student'}, status=status.HTTP_404_NOT_FOUND)
+            
+            if user.profile.school != manager_school:
+                 return Response({'error': 'Student not in your school'}, status=status.HTTP_403_FORBIDDEN)
+                 
         except User.DoesNotExist:
-            return Response({'error': 'Student not found or not in your school'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
         
         # Get time-based stats
         now = timezone.now()

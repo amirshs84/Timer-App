@@ -28,6 +28,11 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
+    // Skip 401 handling for login endpoints to allow the page to handle invalid credentials
+    if (originalRequest.url.includes('auth/login') || originalRequest.url.includes('auth/otp-login')) {
+      return Promise.reject(error);
+    }
+    
     // If 401 (Unauthorized) and we haven't tried to refresh yet
     if (error.response?.status === 401 && !originalRequest._retry) {
        // For now, just logout if token expires (simple implementation)
