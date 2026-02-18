@@ -389,6 +389,7 @@ class ManagerDashboardKPIView(views.APIView):
         # Average study time today
         today_totals = StudySession.objects.filter(
             user__profile__role='student',
+            user__profile__school=manager_school,
             start_time__gte=today_start
         ).aggregate(total=Sum('duration_seconds'))['total'] or 0
         
@@ -397,6 +398,7 @@ class ManagerDashboardKPIView(views.APIView):
         # Average study time yesterday for comparison
         yesterday_totals = StudySession.objects.filter(
             user__profile__role='student',
+            user__profile__school=manager_school,
             start_time__gte=yesterday_start,
             start_time__lt=yesterday_end
         ).aggregate(total=Sum('duration_seconds'))['total'] or 0
@@ -417,6 +419,7 @@ class ManagerDashboardKPIView(views.APIView):
         # Top student today
         top_student_data = StudySession.objects.filter(
             user__profile__role='student',
+            user__profile__school=manager_school,
             start_time__gte=today_start
         ).values('user').annotate(
             total=Sum('duration_seconds')
@@ -433,9 +436,11 @@ class ManagerDashboardKPIView(views.APIView):
         
         # Absent students (no activity today)
         active_users_today = StudySession.objects.filter(
-            start_time__gte=today_start
+            start_time__gte=today_start,
+            user__profile__school=manager_school,
+            user__profile__role='student'
         ).values_list('user_id', flat=True).distinct()
-        absent_count = total_students - len(set(active_users_today))
+        absent_count = max(0, total_students - len(set(active_users_today)))
         
         # Active now (students with is_studying=True in their profile)
         active_now = UserProfile.objects.filter(
