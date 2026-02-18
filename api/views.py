@@ -98,10 +98,33 @@ def register_with_password(request):
         return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
     
     # Check if user already exists
-    if User.objects.filter(username=phone_number).exists():
-        return Response({'error': 'این شماره قبلاً ثبت شده است'}, status=status.HTTP_400_BAD_REQUEST)
+    user_exists = User.objects.filter(username=phone_number).exists()
     
-    # Create user with password
+    if user_exists:
+        user = User.objects.get(username=phone_number)
+        # If user exists and has a password set, return error
+        if hasattr(user, 'profile') and user.profile.is_password_set:
+            return Response({'error': 'این شماره قبلاً ثبت شده است'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # If user exists but has no password (e.g. pre-created manager), update password
+        user.set_password(password)
+        user.save()
+        
+        profile = user.profile
+        profile.is_password_set = True
+        profile.save()
+        
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'profile': UserProfileSerializer(profile).data,
+            'is_new_user': not profile.is_profile_complete
+        }, status=status.HTTP_200_OK)
+    
+    # Create new user with password
     user = User.objects.create(
         username=phone_number,
         password=make_password(password)

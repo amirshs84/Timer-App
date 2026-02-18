@@ -99,7 +99,9 @@ const Login = () => {
     setLoading(true);
     try {
       const res = await authAPI.checkPhone(phoneNumber);
-      setIsExistingUser(res.data.exists);
+      // If user exists AND has password set -> Show Login (isExistingUser = true)
+      // If user exists BUT no password (pre-created) OR doesn't exist -> Show Register (isExistingUser = false)
+      setIsExistingUser(res.data.exists && res.data.has_password);
       setStep(2);
     } catch (error) {
       setError('خطا در بررسی شماره تلفن');
