@@ -69,7 +69,8 @@ export default function StudentProfile() {
     for (let i = 59; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      // Use local date string YYYY-MM-DD
+      const dateStr = date.toLocaleDateString('en-CA');
       
       heatmapDays.push({
         date: dateStr,

@@ -104,10 +104,12 @@ const Dashboard = () => {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       
-      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      // Use local date string for comparison to avoid timezone issues
+      const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+      
       const daySessions = studySessions.filter(session => {
         const sessionDate = new Date(session.start_time);
-        const sessionDateStr = `${sessionDate.getFullYear()}-${String(sessionDate.getMonth() + 1).padStart(2, '0')}-${String(sessionDate.getDate()).padStart(2, '0')}`;
+        const sessionDateStr = sessionDate.toLocaleDateString('en-CA');
         return sessionDateStr === dateStr;
       });
       
