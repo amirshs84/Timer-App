@@ -86,12 +86,10 @@ const StudyTimer = () => {
     const now = new Date();
     setStartTime(now);
     
-    // Update study status to true when timer starts
-    try {
-      await authAPI.updateStudyStatus(true);
-    } catch (error) {
+    // Update study status to true when timer starts - non-blocking
+    authAPI.updateStudyStatus(true).catch(error => {
       console.error('Error updating study status:', error);
-    }
+    });
     
     // Also update the ref inside the hook's scope if we could, 
     // but the hook handles its own start. 
@@ -117,12 +115,10 @@ const StudyTimer = () => {
     const end = new Date();
     setEndTime(end);
     
-    // Update study status to false when timer stops
-    try {
-      await authAPI.updateStudyStatus(false);
-    } catch (error) {
+    // Update study status to false when timer stops - non-blocking
+    authAPI.updateStudyStatus(false).catch(error => {
       console.error('Error updating study status:', error);
-    }
+    });
     
     // Always recalculate start time based on duration to ensure consistency
     // This fixes the issue where startTime might be missing or from a different base date (causing huge duration)
@@ -142,6 +138,17 @@ const StudyTimer = () => {
     setIsSaving(true);
     try {
         console.log("Saving session:", { courseName, finalTime });
+        
+        // Optimistic update: close modal immediately
+        setShowSaveModal(false);
+        setNewCourseName('');
+        setDescription('');
+        setSelectedSubject('');
+        
+        // Clean up timer state immediately
+        localStorage.removeItem('timerState');
+        stop();
+
         const response = await dataAPI.createSession({
             subject_name: courseName,
             description: courseDescription,
@@ -156,21 +163,13 @@ const StudyTimer = () => {
             sessions: (prev.sessions || 0) + 1
         }));
         
-        // If it was a new course, re-fetch subjects
-        const subjectsRes = await dataAPI.getSubjects();
-        setCourses(subjectsRes.data);
+        // If it was a new course, re-fetch subjects in background
+        dataAPI.getSubjects().then(res => setCourses(res.data));
 
-        setShowSaveModal(false);
-        setNewCourseName('');
-        setDescription('');
-        setSelectedSubject('');
-        
-        // Clean up timer state
-        localStorage.removeItem('timerState');
-        stop();
-        
     } catch (error) {
         console.error("Failed to save session:", error.response?.data || error.message);
+        // If failed, we might want to alert the user, but the modal is already closed.
+        // For better UX, we could use a toast notification here.
         alert(`خطا در ذخیره جلسه مطالعه: ${JSON.stringify(error.response?.data || error.message)}`);
     } finally {
         setIsSaving(false);
