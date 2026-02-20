@@ -35,6 +35,8 @@ services:
         - VITE_API_URL=${VITE_API_URL}
     ports:
       - "80:80"
+    volumes:
+      - static_volume:/app/staticfiles
     depends_on:
       - backend
     networks:
