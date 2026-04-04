@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { managerAPI } from '../../api/client';
 import KPICard from '../../components/manager/KPICard';
 import TrendIndicator from '../../components/manager/TrendIndicator';
+import { useContext } from 'react';
+import { usePWA } from '../../hooks/PWAContext';
+import { MdGetApp } from 'react-icons/md';
+import { formatRelativeDateIran, getStartOfDayIran, getIranDate } from '../../utils/dateUtils';
 import { 
   HiAcademicCap, 
   HiExclamationCircle, 
@@ -24,6 +28,7 @@ export default function ManagerDashboard() {
     olympiad: '',
     search: ''
   });
+  const { promptInstall, isStandalone } = usePWA();
 
   // Olympiad field mapping to Persian
   const olympiadMapping = {
@@ -90,12 +95,13 @@ export default function ManagerDashboard() {
   };
 
   const handleExportExcel = () => {
-    const today = new Date();
+    const today = getIranDate();
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 30);
     
-    const startDate = thirtyDaysAgo.toISOString().split('T')[0];
-    const endDate = today.toISOString().split('T')[0];
+    // Format as YYYY-MM-DD using local methods since the Date object is already adjusted to Iran time
+    const startDate = thirtyDaysAgo.toLocaleDateString('en-CA');
+    const endDate = today.toLocaleDateString('en-CA');
     
     const url = managerAPI.exportExcel(startDate, endDate);
     window.open(url, '_blank');
@@ -148,23 +154,45 @@ export default function ManagerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-gray-50 pb-20">
-      {/* Header with Gradient */}
-      <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white p-8 sticky top-0 z-10 shadow-2xl backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-black mb-2 tracking-tight">پنل مدیریت</h1>
-            <p className="text-emerald-100 text-sm font-medium">نمای کلی عملکرد دانش‌آموزان</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm font-semibold backdrop-blur-sm border border-white/10"
-          >
-            <HiLogout className="text-xl" />
-            خروج
-          </button>
-        </div>
+       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-gray-50 bg-white text-gray-900 relative z-10 pb-20">
+    
+    {/* Header with Gradient */}
+    <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white p-8 sticky top-0 z-20 shadow-2xl backdrop-blur-lg">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+          {/* بخش عناوین (سمت راست) */}
+      <div>
+        <h1 className="text-3xl font-black mb-2 tracking-tight">پنل مدیریت</h1>
+        <p className="text-emerald-100 text-sm font-medium">نمای کلی عملکرد دانش‌آموزان</p>
       </div>
+
+      {/* بخش دکمه‌های عملیاتی (سمت چپ) */}
+      <div className="flex items-center gap-3">
+        
+        {/* دکمه نصب اپلیکیشن */}
+        {!isStandalone && (
+          <button
+            onClick={() => navigate('/install-app', { state: { from: '/manager'}})}
+            className="flex items-center gap-2 px-4 py-2 bg-white text-emerald-700 hover:bg-gray-100 rounded-xl transition-all text-sm font-bold shadow-md border border-transparent"
+            title="نصب اپلیکیشن "
+          >
+            <MdGetApp className="text-xl" />
+            <span className="hidden sm:inline">نصب اپ</span>
+          </button>
+        )}
+
+        {/* دکمه خروج */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm font-semibold backdrop-blur-sm border border-white/10"
+        >
+          <HiLogout className="text-xl" />
+          خروج
+        </button>
+
+      </div>
+
+    </div>
+  </div>
 
       <div className="p-6 max-w-7xl mx-auto">
         {/* KPI Cards with Modern Design */}

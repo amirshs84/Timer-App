@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import { dataAPI } from '../api/client';
+import MobileHeader from '../components/MobileHeader';
+import { formatRelativeDateIran, getStartOfDayIran, getIranDate } from '../utils/dateUtils';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [studySessions, setStudySessions] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [activeTab, setActiveTab] = useState('daily'); // daily, weekly, monthly
+  const [activeTab, setActiveTab] = useState('weekly'); // daily, weekly, monthly
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,21 +51,7 @@ const Dashboard = () => {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffHours < 24) {
-      return 'امروز';
-    } else if (diffDays === 1) {
-      return 'دیروز';
-    } else if (diffDays < 7) {
-      return `${diffDays} روز پیش`;
-    } else {
-      return date.toLocaleDateString('fa-IR');
-    }
+    return formatRelativeDateIran(dateString);
   };
 
   const getTotalStudyTime = (sessions = studySessions) => {
@@ -95,8 +83,7 @@ const Dashboard = () => {
   };
 
   const getHeatmapData = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Ensure today is at start of day local time
+    const today = getStartOfDayIran();
     const heatmapDays = [];
     
     // Generate last 90 days
@@ -108,7 +95,7 @@ const Dashboard = () => {
       const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
       
       const daySessions = studySessions.filter(session => {
-        const sessionDate = new Date(session.start_time);
+        const sessionDate = getIranDate(session.start_time);
         const sessionDateStr = sessionDate.toLocaleDateString('en-CA');
         return sessionDateStr === dateStr;
       });
@@ -138,25 +125,20 @@ const Dashboard = () => {
   };
 
   const getFilteredSessions = () => {
-    const now = new Date();
-    
     if (activeTab === 'daily') {
-      const today = new Date(now);
-      today.setHours(0, 0, 0, 0);
+      const today = getStartOfDayIran();
       return studySessions.filter(session => {
-        const sessionDate = new Date(session.start_time);
+        const sessionDate = getIranDate(session.start_time);
         return sessionDate >= today;
       });
     } else if (activeTab === 'weekly') {
-      const weekAgo = new Date(now);
+      const weekAgo = getStartOfDayIran();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      weekAgo.setHours(0, 0, 0, 0);
-      return studySessions.filter(session => new Date(session.start_time) >= weekAgo);
+      return studySessions.filter(session => getIranDate(session.start_time) >= weekAgo);
     } else if (activeTab === 'monthly') {
-      const monthAgo = new Date(now);
+      const monthAgo = getStartOfDayIran();
       monthAgo.setDate(monthAgo.getDate() - 30);
-      monthAgo.setHours(0, 0, 0, 0);
-      return studySessions.filter(session => new Date(session.start_time) >= monthAgo);
+      return studySessions.filter(session => getIranDate(session.start_time) >= monthAgo);
     }
     
     return studySessions;
@@ -175,20 +157,21 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8 pb-24">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-black text-white p-4 md:p-8 pb-28 md:pb-32">
+      <MobileHeader/>
+      	<div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              داشبورد
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent pb-2">
+              پیشرفت
             </h1>
           </div>
           <button
             onClick={() => navigate('/timer')}
             className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg hover:from-emerald-600 hover:to-teal-700 transition font-semibold shadow-lg shadow-emerald-500/30"
           >
-            شروع جلسه مطالعه
+            شروع پیشروی
           </button>
         </div>
 
@@ -198,14 +181,14 @@ const Dashboard = () => {
             <div className="text-6xl md:text-8xl mb-6">📊</div>
             <h2 className="text-2xl md:text-3xl font-semibold mb-3 text-gray-300">هنوز داده‌ای برای نمایش وجود ندارد</h2>
             <p className="text-gray-500 mb-8 max-w-md mx-auto">
-              اولین جلسه مطالعه خود را شروع کنید تا پیشرفت و آمار خود را در اینجا مشاهده کنید!
+              اولین پیشروی خود را شروع کنید تا پیشرفت و آمار خود را در اینجا مشاهده کنید!
             </p>
             <button
               onClick={() => navigate('/timer')}
               className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg 
                        hover:from-emerald-600 hover:to-teal-700 transition font-semibold text-lg shadow-lg shadow-emerald-500/30"
             >
-              همین حالا مطالعه را شروع کنید
+              همین حالا پیشروی را شروع کنید
             </button>
           </div>
         )}
@@ -250,7 +233,7 @@ const Dashboard = () => {
             {/* Statistics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
-                <div className="text-gray-400 text-sm mb-2">مجموع زمان مطالعه</div>
+                <div className="text-gray-400 text-sm mb-2">مجموع زمان پیشروی</div>
                 <div className="text-3xl font-bold text-blue-400">{formatDuration(getTotalStudyTime(filteredSessions))}</div>
               </div>
               <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
@@ -258,16 +241,20 @@ const Dashboard = () => {
                 <div className="text-3xl font-bold text-purple-400">{filteredSessions.length}</div>
               </div>
               <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
-                <div className="text-gray-400 text-sm mb-2">موضوعات مطالعه شده</div>
+                <div className="text-gray-400 text-sm mb-2">موضوعات پیشروی شده</div>
                 <div className="text-3xl font-bold text-green-400">{getSubjectData(filteredSessions).length}</div>
               </div>
             </div>
 
             {/* Heatmap */}
-            <div className="bg-gray-900 p-4 md:p-6 rounded-xl border border-gray-800 mb-8 overflow-x-auto">
-              <div className="flex items-center justify-between mb-6 min-w-[600px]">
-                <h2 className="text-xl md:text-2xl font-semibold text-gray-200">فعالیت ۹۰ روز گذشته</h2>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="bg-gray-900 p-4 md:p-6 rounded-xl border border-gray-800 mb-8">
+              {/* Header */}
+              <div className="flex flex-col md:flex-row items-center md:justify-between mb-6">
+                <h2 className="text-xl md:text-2xl font-semibold text-gray-200 text-center md:text-right w-full md:w-auto">
+                  فعالیت ۹۰ روز گذشته
+                </h2>
+                {/* Desktop Legend */}
+                <div className="hidden md:flex items-center gap-2 text-xs text-gray-400">
                   <span>کمتر</span>
                   <div className="flex gap-1">
                     <div className="w-4 h-4 bg-gray-800 rounded-sm"></div>
@@ -280,7 +267,8 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="flex justify-center min-w-[600px]">
+              {/* Table Container */}
+              <div className="flex justify-center w-full">
                 <div className="inline-flex gap-2">
                   <div className="flex flex-col justify-around text-xs text-gray-500 py-4 pl-2 h-[140px]">
                     <div>شنبه</div>
@@ -299,7 +287,7 @@ const Dashboard = () => {
                         }
                         weeksData.forEach((week, weekIndex) => {
                           if (week.length > 0) {
-                            const date = new Date(week[0].date);
+                            const date = new Date(week[0].date + 'T12:00:00');
                             const monthName = date.toLocaleDateString('fa-IR', { month: 'short' });
                             if (monthName !== lastMonth) {
                               months.push(
@@ -326,9 +314,9 @@ const Dashboard = () => {
                                     hover:ring-2 hover:ring-emerald-400 transition cursor-pointer group relative`}
                         >
                            <div className="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 
-                                        bg-gray-800 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap z-10 pointer-events-none
+                                        bg-gray-800 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap z-50 pointer-events-none
                                         border border-gray-700 shadow-xl">
-                            <div className="font-semibold text-center mb-1">{new Date(day.date).toLocaleDateString('fa-IR')}</div>
+                            <div className="font-semibold text-center mb-1">{new Date(day.date + 'T12:00:00').toLocaleDateString('fa-IR')}</div>
                             <div className="text-emerald-400">{day.totalMinutes} دقیقه مطالعه</div>
                             <div className="text-gray-400">{day.sessions} جلسه</div>
                           </div>
@@ -338,12 +326,25 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Mobile Legend */}
+              <div className="flex md:hidden items-center justify-center gap-2 text-xs text-gray-400 mt-6">
+                <span>کمتر</span>
+                <div className="flex gap-1">
+                  <div className="w-4 h-4 bg-gray-800 rounded-sm"></div>
+                  <div className="w-4 h-4 bg-emerald-900/50 rounded-sm"></div>
+                  <div className="w-4 h-4 bg-emerald-700/70 rounded-sm"></div>
+                  <div className="w-4 h-4 bg-emerald-500 rounded-sm"></div>
+                  <div className="w-4 h-4 bg-emerald-400 rounded-sm"></div>
+                </div>
+                <span>بیشتر</span>
+              </div>
             </div>
 
             {/* Subject Breakdown */}
             {getSubjectData(filteredSessions).length > 0 && (
               <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 mb-8">
-                <h2 className="text-2xl font-semibold mb-6 text-gray-200">زمان مطالعه بر اساس موضوع</h2>
+                <h2 className="text-2xl font-semibold mb-6 text-gray-200">زمان پیشروی بر اساس موضوع</h2>
                 <div className="space-y-4">
                   {getSubjectData(filteredSessions)
                     .sort((a, b) => b.duration - a.duration)
@@ -378,7 +379,7 @@ const Dashboard = () => {
 
             {/* Recent Sessions */}
             <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 mb-6">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-200">جلسات اخیر</h2>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-200">پیشروی‌های تازه</h2>
               {filteredSessions.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   در این بازه زمانی جلسه‌ای ثبت نشده است

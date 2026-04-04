@@ -7,6 +7,7 @@ import ManagerDashboard from './pages/manager/ManagerDashboard';
 import StudentProfile from './pages/manager/StudentProfile';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 import WhatsNewModal from './components/WhatsNewModal';
+import InstallApp from './pages/InstallApp';
 
 function App() {
   return (
@@ -16,6 +17,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
+          
+          {/* مسیر راهنمای نصب اپلیکیشن */}
+          <Route path="/install-app" element={<InstallApp />} />
           
           {/* Student Routes */}
           <Route path="/timer" element={<StudyTimer />} />

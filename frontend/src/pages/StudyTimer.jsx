@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useStudyTimer } from '../hooks/useStudyTimer';
 import BottomNav from '../components/BottomNav';
 import { dataAPI, authAPI } from '../api/client';
+import { Link } from 'react-router-dom';
+import { MdGetApp } from 'react-icons/md';
+import { usePWA } from '../hooks/PWAContext'; 
+import { formatRelativeDateIran, getStartOfDayIran } from '../utils/dateUtils';
 
 const StudyTimer = () => {
   const navigate = useNavigate();
@@ -16,52 +20,127 @@ const StudyTimer = () => {
   const [startTime, setStartTime] = useState(null);
   const [endTime, setEndTime] = useState(null);
   const [userName, setUserName] = useState('');
-  const [todayStats, setTodayStats] = useState({ time: 0, sessions: 0 });
+  const [todayStats, setTodayStats] = useState({ time: 0, sessions: 0 }); 
   const [showGuideTooltip, setShowGuideTooltip] = useState(false);
   const [newCourseName, setNewCourseName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  
+  const {deferredPrompt, promptInstall, isStandalone} = usePWA();
+
+const [showBlackOverlay, setShowBlackOverlay] = useState(false);
+
   const { seconds, isActive, isPaused, focusLost, start, pause, resume, stop, reset } = useStudyTimer(0);
 
   useEffect(() => {
-    const initData = async () => {
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
-        if (!isLoggedIn) {
-            navigate('/login');
-            return;
-        }
-
-        try {
-            // Load profile (for name) and courses
-            const [subjectsRes, profileRes, statsRes] = await Promise.all([
-                dataAPI.getSubjects(),
-                authAPI.getProfile(),
-                dataAPI.getDashboardStats()
-            ]);
-
-            setCourses(subjectsRes.data);
-            setUserName(profileRes.data.full_name || 'دانشجو');
-            
-            // Set stats for "Today" (from dashboard stats)
-            setTodayStats({ 
-                time: statsRes.data.today, 
-                // Note: backend dashboard stats doesn't return today's count separately in the simple view
-                // We'll trust the time for now. If count is needed we might need to fetch sessions.
-                sessions: 0 // Placeholder or we can fetch sessions to count
-            });
-
-        } catch (error) {
-            console.error(error);
-        }
-    };
-    
-    initData();
-
-    const hasVisited = localStorage.getItem('hasVisitedTimer');
-    if (!hasVisited) {
-      setShowOnboarding(true);
+  const initData = async () => {
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
     }
-  }, [navigate]);
+
+    try {
+      // استفاده از getSessions به جای getDashboardStats برای یکپارچگی منطق محاسبه زمان محلی
+      const [subjectsRes, profileRes, sessionsRes] = await Promise.all([
+        dataAPI.getSubjects(),
+        authAPI.getProfile(),
+        dataAPI.getSessions() // <--- تغییر کلیدی در اینجا
+      ]);
+
+      setCourses(subjectsRes.data);
+      setUserName(profileRes.data.full_name || 'دانشجو');
+      
+      // محاسبه محلی "امروز" دقیقاً مشابه منطق داشبورد
+      const startOfTodayLocal = getStartOfDayIran();
+
+      // فیلتر کردن سشن‌های امروز بر اساس منطقه زمانی ایران
+      const todaySessions = (sessionsRes.data || []).filter(session => {
+        const sessionDate = getStartOfDayIran(session.start_time);
+        return sessionDate.getTime() === startOfTodayLocal.getTime();
+      });
+
+      // جمع زدن مدت زمان سشن‌های امروز
+      const todayTotalSeconds = todaySessions.reduce((total, session) => total + session.duration_seconds, 0);
+      const todaySessionsCount = todaySessions.length;
+
+      // تنظیم state با داده‌های محاسبه شده محلی
+      setTodayStats({ 
+        time: todayTotalSeconds, 
+        sessions: todaySessionsCount 
+      });
+
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+    }
+  };
+  
+  initData();
+
+  const hasVisited = localStorage.getItem('hasVisitedTimer');
+  if (!hasVisited) {
+    setShowOnboarding(true);
+  }
+   let inactivityTimer;
+  const IDLE_TIMEOUT = 120000; // ۲ دقیقه
+
+  const isMobileOrTablet = () => {
+    // ۱. بررسی سیستم‌عامل‌های استاندارد
+    const ua = navigator.userAgent.toLowerCase();
+    const isMobileOS = /android|webos|iphone|ipad|ipod|blackberry|windows phone/i.test(ua);
+
+    // ۲. تشخیص آیپد و تبلت‌هایی که خود را دسکتاپ معرفی می‌کنند
+    const isIPadOS = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    // ۳. بررسی هوشمند نوع نشانگر (Pointer) - تبلت‌ها پوینتر "Coarse" دارند
+    // این متد تبلت اندرویدی را حتی اگر روی Desktop Mode باشد تشخیص می‌دهد
+    const isTouchPrimary = window.matchMedia('(pointer: coarse)').matches;
+
+    // ۴. استثنا کردن لپ‌تاپ‌های ویندوزی لمسی: 
+    // اگر دستگاه ویندوزی باشد و همزمان موس (fine pointer) داشته باشد، آن را لپ‌تاپ در نظر می‌گیریم
+    const isWindowsLaptop = /windows nt/i.test(ua) && window.matchMedia('(pointer: fine)').matches;
+
+    return (isMobileOS || isIPadOS || isTouchPrimary) && !isWindowsLaptop;
+  };
+
+  const isDeviceEligible = isMobileOrTablet();
+
+  const resetInactivityTimer = () => {
+    setShowBlackOverlay(false);
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+
+    if (isActive && !isPaused && isDeviceEligible) {
+      inactivityTimer = setTimeout(() => {
+        setShowBlackOverlay(true);
+      }, IDLE_TIMEOUT);
+    }
+  };
+
+  // گوش دادن به رویدادها
+  if (isActive && !isPaused && isDeviceEligible) {
+    // رویدادهای لمسی برای موبایل/تبلت
+    window.addEventListener('touchstart', resetInactivityTimer, { passive: true });
+    // رویداد کلیک (برای اطمینان)
+    window.addEventListener('mousedown', resetInactivityTimer, { passive: true });
+    // رویداد اسکرول
+    window.addEventListener('scroll', resetInactivityTimer, { passive: true });
+    
+    resetInactivityTimer();
+  } else {
+    setShowBlackOverlay(false);
+  }
+
+  return () => {
+    window.removeEventListener('touchstart', resetInactivityTimer);
+    window.removeEventListener('mousedown', resetInactivityTimer);
+    window.removeEventListener('scroll', resetInactivityTimer);
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+  };
+}, [navigate, isActive, isPaused]);
+
+const handleDismissBlackout = () => {
+    setShowBlackOverlay(false);
+    // هدف بعدی را روی 30 ثانیه بعد از زمان فعلیِ تایمر تنظیم می‌کنیم
+    nextBlackoutTimeRef.current = seconds + 120;
+  };
 
   const closeOnboarding = () => {
     setShowOnboarding(false);
@@ -157,11 +236,16 @@ const StudyTimer = () => {
         });
         console.log("Session saved successfully:", response.data);
 
-        // Update stats locally
-        setTodayStats(prev => ({
-            time: (prev.time || 0) + finalTime,
-            sessions: (prev.sessions || 0) + 1
-        }));
+        // Update stats locally if the session is for today
+        const sessionDate = getStartOfDayIran(editedStartTime);
+        const startOfTodayLocal = getStartOfDayIran();
+        
+        if (sessionDate.getTime() === startOfTodayLocal.getTime()) {
+          setTodayStats(prev => ({
+              time: (prev.time || 0) + finalTime,
+              sessions: (prev.sessions || 0) + 1
+          }));
+        }
         
         // If it was a new course, re-fetch subjects in background
         dataAPI.getSubjects().then(res => setCourses(res.data));
@@ -178,11 +262,23 @@ const StudyTimer = () => {
 
 
   const formatTime = (totalSeconds) => {
-    if (typeof totalSeconds !== 'number' || isNaN(totalSeconds)) return "00:00";
+  if (typeof totalSeconds !== 'number' || isNaN(totalSeconds) || totalSeconds < 0) {
+    return "00:00";
+  }
+
+  // اگر زمان کمتر از یک ساعت (۳۶۰۰ ثانیه) باشد: فرمت mm:ss
+  if (totalSeconds < 3600) {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
+  } 
+  
+  // اگر زمان بیشتر یا مساوی یک ساعت باشد: فرمت h:mm:ss
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+};
 
   const getCourseColor = (courseName) => {
     const course = courses.find(c => c.name === courseName);
@@ -192,33 +288,45 @@ const StudyTimer = () => {
 
   const onboardingContent = [
     {
-      title: 'شروع رشد با یک کلیک',
-      description: 'یک درس انتخاب کنید و روی دکمه شروع کلیک کنید. جلسه مطالعه عمیق شما شروع می‌شود!',
+      title: 'رشدت رو با یه کلیک شروع کن',
+      description: 'کافیه درسی که می‌خوای رو انتخاب کنی و دکمه شروع رو بزنی تا جلسه مطالعه عمیقت استارت بخوره!',
       icon: '🌱'
     },
     {
-      title: 'تنفس همراه با Pulse',
-      description: 'دایره سبز با ریتم تنفس شما حرکت می‌کند. دم: 4 ثانیه، بازدم: 4 ثانیه. آرامش و تمرکز.',
+      title: 'با پالس (Pulse) نفس بکش',
+      description: 'دایره سبز دقیقا با ریتم نفس کشیدنت حرکت می‌کنه؛ ۴ ثانیه دم، ۴ ثانیه بازدم. اینطوری حسابی آروم میشی و تمرکزت می‌ره بالا.',
       icon: '🫁'
     },
     {
-      title: "پومودورو منعطف",
-      description: '۱ یا ۲ وقفه زیر ۵ دقیقه؟ مشکلی نیست! برگردید و ادامه دهید. مهم تمرکز شماست.',
+      title: 'یه پومودوروی کاملاً منعطف',
+      description: 'وسط کار یکی دو تا وقفه زیر ۵ دقیقه پیش اومد؟ فدای سرت! برگرد و پرقدرت ادامه بده، اینجا فقط تمرکز تو برامون مهمه.',
       icon: '💡'
     }
-  ];
+];
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-black to-teal-950 text-white flex flex-col relative overflow-hidden pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-black to-teal-950 text-white flex flex-col relative overflow-hidden pb-28 md:pb-32">
       <div className="absolute inset-0 opacity-10" style={{
         backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
         backgroundSize: '40px 40px'
       }}></div>
       
 
-      {!isActive ? (
-        <div className="flex-1 flex flex-col items-center justify-between py-8 px-4 relative z-10">
+        {!isActive ? (
+      <div className="flex-1 flex flex-col items-center justify-between py-8 px-4 relative z-10">
+        {!isStandalone && (
+          <div className="absolute top-4 right-4 z-20">
+            <Link
+              to="/install-app"
+              state={{from: '/timer'}}
+              className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-2 rounded-xl border border-emerald-500/20 backdrop-blur-md transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+            >
+              <MdGetApp className="w-5 h-5" />
+              <span className="text-sm font-medium">نصب اپ</span>
+            </Link>
+          </div>
+        )}
           <div className="text-center mt-8">
             <h1 className="text-2xl md:text-3xl font-semibold mb-2">
               سلام {userName} 👋
@@ -277,7 +385,7 @@ const StudyTimer = () => {
                 <div className="text-2xl md:text-3xl font-bold text-emerald-400">
                   {Math.floor(todayStats.time / 3600)}:{String(Math.floor((todayStats.time % 3600) / 60)).padStart(2, '0')}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">ساعت مطالعه</div>
+                <div className="text-xs text-gray-500 mt-1">مقدار پیشروی</div>
               </div>
             </div>
           </div>
@@ -295,11 +403,10 @@ const StudyTimer = () => {
               <div className="absolute top-12 left-0 w-64 md:w-80 bg-gray-900 border border-gray-700 
                            rounded-xl p-4 shadow-2xl z-20 text-right animate-fadeIn">
                 <h4 className="font-semibold mb-2 text-emerald-400 text-sm">
-                  💡 تکنیک پومودورو منعطف
+                  💡 راهنما
                 </h4>
                 <p className="text-xs text-gray-300 leading-relaxed">
-                  اگر ۱ یا ۲ بار وقفه‌ی زیر ۵ دقیقه داشته باشی، مشکلی نیست. برگرد و ادامه بده! 
-                  مهم این است که تمرکزت را حفظ کنی.
+                    ضربان ثانیه‌ها، یعنی داری رشد می‌کنی <span role="img" aria-label="smile">😊</span>
                 </p>
               </div>
             )}
@@ -394,7 +501,7 @@ const StudyTimer = () => {
                 type="text"
                 value={newCourseName}
                 onChange={(e) => setNewCourseName(e.target.value)}
-                placeholder="نام درس جدید را بنویسید..."
+                placeholder="نام درس جدید را بنویس..."
                 className="w-full px-4 py-3 bg-gray-950/50 text-white rounded-xl border border-gray-700 
                          focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20
                          transition-all"
@@ -429,17 +536,20 @@ const StudyTimer = () => {
                     value={startTime && !isNaN(startTime.getTime()) ? startTime.toTimeString().slice(0, 5) : ''}
                     onChange={(e) => {
                       const [hours, minutes] = e.target.value.split(':');
-                      // Use endTime as base if startTime is somehow broken, or just current startTime
                       const baseDate = (startTime && !isNaN(startTime.getTime())) ? startTime : new Date();
-                      const newStart = new Date(baseDate);
+                      let newStart = new Date(baseDate);
                       newStart.setHours(parseInt(hours), parseInt(minutes));
-                      newStart.setSeconds(0); // Reset seconds for cleaner input
-                      setStartTime(newStart);
+                      newStart.setSeconds(0);
                       
                       if (endTime && !isNaN(endTime.getTime())) {
+                        if (newStart > endTime) {
+                          // If start time is after end time, assume it started the previous day
+                          newStart.setDate(newStart.getDate() - 1);
+                        }
                         let diff = Math.floor((endTime - newStart) / 1000);
                         setAdjustedTime(Math.max(60, diff));
                       }
+                      setStartTime(newStart);
                     }}
                     className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-700 
                              focus:outline-none focus:border-emerald-500 text-sm"
@@ -454,15 +564,19 @@ const StudyTimer = () => {
                     onChange={(e) => {
                       const [hours, minutes] = e.target.value.split(':');
                       const baseDate = (endTime && !isNaN(endTime.getTime())) ? endTime : new Date();
-                      const newEnd = new Date(baseDate);
+                      let newEnd = new Date(baseDate);
                       newEnd.setHours(parseInt(hours), parseInt(minutes));
                       newEnd.setSeconds(0);
-                      setEndTime(newEnd);
                       
                       if (startTime && !isNaN(startTime.getTime())) {
+                        if (newEnd < startTime) {
+                          // If end time is before start time, assume it crossed midnight to the next day
+                          newEnd.setDate(newEnd.getDate() + 1);
+                        }
                         const diff = Math.floor((newEnd - startTime) / 1000);
                         setAdjustedTime(Math.max(60, diff));
                       }
+                      setEndTime(newEnd);
                     }}
                     className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-700 
                              focus:outline-none focus:border-emerald-500 text-sm"
@@ -578,7 +692,14 @@ const StudyTimer = () => {
           </div>
         </div>
       )}
-
+      {showBlackOverlay && (
+  <div 
+    className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center animate-in fade-in duration-500"
+    onClick={() => setShowBlackOverlay(false)}
+    onTouchStart={() => setShowBlackOverlay(false)}
+  >
+  </div>
+)}
       <BottomNav />
     </div>
   );

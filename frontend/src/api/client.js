@@ -29,7 +29,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     
     // Skip 401 handling for login endpoints to allow the page to handle invalid credentials
-    if (originalRequest.url.includes('auth/login') || originalRequest.url.includes('auth/otp-login')) {
+    if (originalRequest.url.includes('auth/login') || originalRequest.url.includes('auth/otp-login') || originalRequest.url.includes('auth/check-phone') || originalRequest.url.includes('auth/register')) {
       return Promise.reject(error);
     }
     
@@ -68,6 +68,7 @@ export const authAPI = {
 export const dataAPI = {
   getSubjects: () => api.get('subjects/'),
   createSubject: (data) => api.post('subjects/', data),
+  updateSubject: (id, data) => api.put(`subjects/${id}/`, data),
   getSessions: () => api.get('sessions/'), // This endpoint lists recent sessions
   createSession: (data) => api.post('sessions/', data),
   getDashboardStats: () => api.get('dashboard/stats/'),

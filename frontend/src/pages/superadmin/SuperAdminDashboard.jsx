@@ -95,10 +95,11 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-gray-50 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-purple-700 via-indigo-700 to-purple-800 text-white p-8 shadow-2xl">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-gray-50 bg-white text-gray-900 relative z-10 pb-20">
+    
+    {/* Header with Gradient */}
+    <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white p-8 sticky top-0 z-20 shadow-2xl backdrop-blur-lg">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-black mb-2 tracking-tight">پنل سوپرادمین</h1>
             <p className="text-purple-100 text-sm font-medium">مدیریت مدارس و دسترسی‌ها</p>

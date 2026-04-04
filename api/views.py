@@ -38,10 +38,12 @@ def check_phone(request):
     
     try:
         user = User.objects.get(username=phone_number)
-        profile = user.profile
+        has_pw = False
+        if hasattr(user, 'profile'):
+            has_pw = user.profile.is_password_set
         return Response({
             'exists': True,
-            'has_password': profile.is_password_set
+            'has_password': has_pw
         })
     except User.DoesNotExist:
         return Response({
@@ -284,6 +286,16 @@ class SubjectListView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         # Automatically assign the current user
         serializer.save(user=self.request.user)
+
+
+class SubjectDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Retrieve, update or delete a specific subject"""
+    serializer_class = SubjectSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Ensure users can only edit/delete their own subjects
+        return Subject.objects.filter(user=self.request.user)
 
 
 class StudySessionListCreateView(generics.ListCreateAPIView):

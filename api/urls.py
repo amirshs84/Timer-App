@@ -8,6 +8,7 @@ from .views import (
     UserProfileView,
     update_study_status,
     SubjectListView,
+    SubjectDetailView,
     StudySessionListCreateView,
     DashboardStatsView,
     CreateTicketView,
@@ -39,6 +40,7 @@ urlpatterns = [
     
     # Study Data
     path('subjects/', SubjectListView.as_view(), name='subject_list'),
+    path('subjects/<int:pk>/', SubjectDetailView.as_view(), name='subject_detail'),
     path('sessions/', StudySessionListCreateView.as_view(), name='study_sessions'),
     path('dashboard/stats/', DashboardStatsView.as_view(), name='dashboard_stats'),
     

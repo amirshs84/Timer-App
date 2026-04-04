@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import ConsultantFAB from '../components/ConsultantFAB';
 import { authAPI, dataAPI } from '../api/client';
+import MobileHeader from '../components/MobileHeader';
 
 const Courses = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCoursesManager, setShowCoursesManager] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
   const [newCourseName, setNewCourseName] = useState('');
   const [newCourseColor, setNewCourseColor] = useState('#3b82f6');
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -126,7 +129,9 @@ const Courses = () => {
             color_code: newCourseColor
         });
         
-        setCourses([...courses, res.data]);
+        const newCourse = res.data;
+        
+        setCourses([...courses, newCourse]);
         setNewCourseName('');
         setNewCourseColor('#3b82f6');
         setShowAddModal(false);
@@ -136,18 +141,47 @@ const Courses = () => {
     }
   };
 
+  const handleEditCourse = async () => {
+    if (!newCourseName.trim()) {
+      alert('لطفا نام درس را وارد کنید!');
+      return;
+    }
+
+    try {
+        await dataAPI.updateSubject(editingCourse.id, {
+            name: newCourseName.trim(),
+            color_code: newCourseColor
+        });
+        
+        setCourses(courses.map(c => 
+            c.id === editingCourse.id 
+                ? { ...c, name: newCourseName.trim(), color_code: newCourseColor } 
+                : c
+        ));
+        
+        setNewCourseName('');
+        setNewCourseColor('#3b82f6');
+        setEditingCourse(null);
+        setShowAddModal(false);
+    } catch (error) {
+        console.error(error);
+        alert('خطا در ویرایش درس.');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8 pb-24">
+    <div className="min-h-screen bg-black text-white p-4 md:p-8 pb-28 md:pb-32">
+<MobileHeader />
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent pb-2">
             تنظیمات
           </h1>
           <p className="text-gray-400 text-sm mt-2">مدیریت درس‌ها و تنظیمات</p>
         </div>
 
         <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 mb-6">
-          <h2 className="text-xl font-bold mb-4 text-emerald-400">حساب کاربری</h2>
+          <h2 className="text-xl font-bold mb-4 text-emerald-400">مدیریت</h2>
           <div className="space-y-3">
             <button
               onClick={() => setShowEditProfile(true)}
@@ -162,60 +196,102 @@ const Courses = () => {
               </div>
               <span className="text-gray-400">←</span>
             </button>
-          </div>
-        </div>
 
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-emerald-400">درس‌های من</h2>
-        </div>
-
-        {courses.length === 0 && !loading && (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📚</div>
-            <h2 className="text-2xl font-semibold mb-2 text-gray-300">هنوز درسی اضافه نشده است</h2>
-            <p className="text-gray-500 mb-8">اولین درس خود را اضافه کنید تا شروع کنید!</p>
-          </div>
-        )}
-
-        {courses.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            {courses.map((course) => (
-              <div
-                key={course.id}
-                className="bg-gray-900 rounded-xl p-6 border border-gray-800 hover:border-gray-700 transition"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div
-                      className="w-4 h-4 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: course.color_code || course.color }}
-                    ></div>
-                    <h3 className="text-xl font-semibold text-gray-200">{course.name}</h3>
-                  </div>
+            <button
+              onClick={() => setShowCoursesManager(true)}
+              className="w-full flex items-center justify-between p-4 bg-gray-800 hover:bg-gray-750 rounded-lg transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📚</span>
+                <div className="text-right">
+                  <div className="font-semibold">درس‌های من</div>
+                  <div className="text-sm text-gray-400">{courses.length} درس ثبت شده</div>
                 </div>
               </div>
-            ))}
+              <span className="text-gray-400">←</span>
+            </button>
           </div>
-        )}
-
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="w-full p-6 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl 
-                   hover:from-blue-700 hover:to-purple-700 transition-all duration-300 
-                   transform hover:scale-105 shadow-xl shadow-blue-500/30 font-semibold text-lg"
-        >
-          + افزودن درس جدید
-        </button>
+        </div>
       </div>
 
+      {showCoursesManager && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm flex flex-col z-50 animate-fadeIn">
+          <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900">
+            <h2 className="text-xl font-bold text-emerald-400">مدیریت درس‌ها</h2>
+            <button
+              onClick={() => setShowCoursesManager(false)}
+              className="text-gray-400 hover:text-white text-3xl px-2"
+            >
+              ×
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 pb-24">
+            {courses.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">📚</div>
+                <h2 className="text-xl font-semibold mb-2 text-gray-300">هنوز درسی اضافه نشده است</h2>
+              </div>
+            ) : (
+              <div className="space-y-3 mb-8">
+                {courses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="bg-gray-800 rounded-xl p-4 border border-gray-700 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: course.color_code || course.color }}
+                      ></div>
+                      <h3 className="font-semibold text-gray-200">{course.name}</h3>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditingCourse(course);
+                        setNewCourseName(course.name);
+                        setNewCourseColor(course.color_code || course.color || '#3b82f6');
+                        setShowAddModal(true);
+                      }}
+                      className="p-2 text-gray-400 hover:text-blue-400 transition bg-gray-900 rounded-lg"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                setEditingCourse(null);
+                setNewCourseName('');
+                setNewCourseColor('#3b82f6');
+                setShowAddModal(true);
+              }}
+              className="w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl 
+                       hover:from-blue-700 hover:to-purple-700 transition-all duration-300 
+                       shadow-lg font-semibold text-lg flex items-center justify-center gap-2"
+            >
+              <span className="text-2xl">+</span> افزودن درس جدید
+            </button>
+          </div>
+        </div>
+      )}
+
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] px-4">
           <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full border border-gray-800 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold text-gray-200">افزودن درس</h2>
+              <h2 className="text-2xl font-bold text-gray-200">
+                {editingCourse ? 'ویرایش درس' : 'افزودن درس'}
+              </h2>
               <button
                 onClick={() => {
                   setShowAddModal(false);
+                  setEditingCourse(null);
                   setNewCourseName('');
                   setNewCourseColor('#3b82f6');
                 }}
@@ -261,6 +337,7 @@ const Courses = () => {
                 <button
                   onClick={() => {
                     setShowAddModal(false);
+                    setEditingCourse(null);
                     setNewCourseName('');
                     setNewCourseColor('#3b82f6');
                   }}
@@ -269,13 +346,13 @@ const Courses = () => {
                   انصراف
                 </button>
                 <button
-                  onClick={handleAddCourse}
+                  onClick={editingCourse ? handleEditCourse : handleAddCourse}
                   disabled={!newCourseName.trim()}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg 
                            hover:from-blue-600 hover:to-purple-700 transition font-semibold
                            disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  افزودن
+                  {editingCourse ? 'ذخیره تغییرات' : 'افزودن'}
                 </button>
               </div>
             </div>

@@ -28,7 +28,7 @@ const Home = () => {
       
       {/* Main content */}
       <div className="relative z-10 text-center w-full max-w-md">
-        <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+        <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent pb-2">
           تایمر مطالعه
         </h1>
         <p className="text-gray-400 mb-12 text-lg">{userName}، خوش آمدید!</p>

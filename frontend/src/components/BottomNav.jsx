@@ -8,77 +8,98 @@ const BottomNav = () => {
     {
       id: 'home',
       path: '/timer',
-      label: 'خانه',
+      label: 'میز کار',
       icon: (isActive) => (
         <svg 
-          width="24" 
-          height="24" 
+          xmlns="http://www.w3.org/2000/svg" 
           viewBox="0 0 24 24" 
-          fill="none"
+          width="28" 
+          height="28" 
+          fill="none" 
+          stroke={isActive ? '#10b981' : '#6b7280'} 
+          strokeWidth="1.5" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
           className="transition-all duration-200"
         >
-          <path 
-            d="M12 4L12 20M12 4L8 8M12 4L16 8" 
-            stroke={isActive ? '#10b981' : '#6b7280'} 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          />
-          <circle 
-            cx="12" 
-            cy="12" 
-            r="10" 
-            stroke={isActive ? '#10b981' : '#6b7280'} 
-            strokeWidth="1.5"
-          />
+          {/* Base of the lamp */}
+          <rect x="5" y="19" width="14" height="2" rx="1" />
+          <path d="M 10 19 V 17 a 2 2 0 0 1 4 0 v 2" />
+          
+          {/* Lower Arm */}
+          <line x1="11" y1="16" x2="8" y2="11.5" />
+          
+          {/* Articulated Joint */}
+          <circle cx="7.5" cy="10.5" r="1.5" />
+          
+          {/* Upper Arm */}
+          <line x1="8.5" y1="9.5" x2="12.5" y2="5.5" />
+          
+          {/* Lampshade Connector & Shade */}
+          <path d="M 11.5 4.5 l 2 2" />
+          <path d="M 12 4 l 5.5 1.5 c 1 2.5 -0.5 5.5 -2.5 6.5 l -5 -2 c -1.5 -2 -0.5 -5 2 -6 z" />
         </svg>
       )
     },
     {
       id: 'dashboard',
       path: '/dashboard',
-      label: 'داشبورد',
+      label: 'پیشرفت',
       icon: (isActive) => (
         <svg 
-          width="24" 
-          height="24" 
+          xmlns="http://www.w3.org/2000/svg" 
           viewBox="0 0 24 24" 
-          fill="none"
+          width="28" 
+          height="28" 
+          fill="none" 
+          stroke={isActive ? '#10b981' : '#6b7280'} 
+          strokeWidth="1.5" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
           className="transition-all duration-200"
         >
-          <path 
-            d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" 
-            fill={isActive ? '#10b981' : '#6b7280'}
-          />
+          {/* Base Line (Symmetrically anchored) */}
+          <line x1="2" y1="21" x2="22" y2="21" />
+          
+          {/* Bar 1 (Height: 3.5 units) */}
+          <path d="M 4.5 21 V 19 A 1.5 1.5 0 0 1 7.5 19 V 21" />
+          
+          {/* Bar 2 (Height: 7.0 units) */}
+          <path d="M 10.5 21 V 15.5 A 1.5 1.5 0 0 1 13.5 15.5 V 21" />
+          
+          {/* Bar 3 (Height: 14.0 units - Taller and Dominant) */}
+          <path d="M 16.5 21 V 8.5 A 1.5 1.5 0 0 1 19.5 8.5 V 21" />
+          
+          {/* Exponential Arrow (Flat start, steep 1.5x spike on the right) */}
+          <path d="M 2 16 C 11 16, 16 7, 21 2" />
+          
+          {/* Arrowhead (Aligned perfectly to the steep terminal tangent) */}
+          <polyline points="17.5,2 21,2 21,5.5" />
         </svg>
       )
     },
     {
-      id: 'settings',
+      id: 'profile',
       path: '/courses',
-      label: 'تنظیمات',
+      label: 'پروفایل',
       icon: (isActive) => (
         <svg 
-          width="24" 
-          height="24" 
+          xmlns="http://www.w3.org/2000/svg" 
           viewBox="0 0 24 24" 
-          fill="none"
+          width="28" 
+          height="28" 
+          fill="none" 
+          stroke={isActive ? '#10b981' : '#6b7280'} 
+          strokeWidth="1.5" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
           className="transition-all duration-200"
         >
-          <path 
-            d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" 
-            stroke={isActive ? '#10b981' : '#6b7280'} 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          />
-          <path 
-            d="M19.4 15C19.1277 15.6171 19.2583 16.3378 19.73 16.82L19.79 16.88C20.1656 17.2551 20.3766 17.7642 20.3766 18.295C20.3766 18.8258 20.1656 19.3349 19.79 19.71C19.4149 20.0856 18.9058 20.2966 18.375 20.2966C17.8442 20.2966 17.3351 20.0856 16.96 19.71L16.9 19.65C16.4178 19.1783 15.6971 19.0477 15.08 19.32C14.4755 19.5791 14.0826 20.1724 14.08 20.83V21C14.08 22.1046 13.1846 23 12.08 23C10.9754 23 10.08 22.1046 10.08 21V20.91C10.0642 20.2327 9.63587 19.6339 9 19.4C8.38291 19.1277 7.66219 19.2583 7.18 19.73L7.12 19.79C6.74486 20.1656 6.23582 20.3766 5.705 20.3766C5.17418 20.3766 4.66514 20.1656 4.29 19.79C3.91445 19.4149 3.70343 18.9058 3.70343 18.375C3.70343 17.8442 3.91445 17.3351 4.29 16.96L4.35 16.9C4.82167 16.4178 4.95235 15.6971 4.68 15.08C4.42093 14.4755 3.82764 14.0826 3.17 14.08H3C1.89543 14.08 1 13.1846 1 12.08C1 10.9754 1.89543 10.08 3 10.08H3.09C3.76733 10.0642 4.36613 9.63587 4.6 9C4.87235 8.38291 4.74167 7.66219 4.27 7.18L4.21 7.12C3.83445 6.74486 3.62343 6.23582 3.62343 5.705C3.62343 5.17418 3.83445 4.66514 4.21 4.29C4.58514 3.91445 5.09418 3.70343 5.625 3.70343C6.15582 3.70343 6.66486 3.91445 7.04 4.29L7.1 4.35C7.58219 4.82167 8.30291 4.95235 8.92 4.68H9C9.60447 4.42093 9.99738 3.82764 10 3.17V3C10 1.89543 10.8954 1 12 1C13.1046 1 14 1.89543 14 3V3.09C14.0026 3.74764 14.3955 4.34093 15 4.6C15.6171 4.87235 16.3378 4.74167 16.82 4.27L16.88 4.21C17.2551 3.83445 17.7642 3.62343 18.295 3.62343C18.8258 3.62343 19.3349 3.83445 19.71 4.21C20.0856 4.58514 20.2966 5.09418 20.2966 5.625C20.2966 6.15582 20.0856 6.66486 19.71 7.04L19.65 7.1C19.1783 7.58219 19.0477 8.30291 19.32 8.92V9C19.5791 9.60447 20.1724 9.99738 20.83 10H21C22.1046 10 23 10.8954 23 12C23 13.1046 22.1046 14 21 14H20.91C20.2524 14.0026 19.6591 14.3955 19.4 15Z" 
-            stroke={isActive ? '#10b981' : '#6b7280'} 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          />
+          {/* Head: Perfect geometric circle (Height: 8 units) */}
+          <circle cx="12" cy="7" r="4" />
+          
+          {/* Body: Geometric and symmetrical paths matching the "Bar" aesthetic */}
+          <path d="M 5 21 V 18 A 5 5 0 0 1 10 13 H 14 A 5 5 0 0 1 19 18 V 21" />
         </svg>
       )
     }
@@ -89,14 +110,14 @@ const BottomNav = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-xl border-t border-gray-800 z-40 safe-area-pb">
       <div className="max-w-screen-xl mx-auto px-4">
-        <div className="flex justify-around items-center h-16">
+        <div className="flex justify-around items-center h-20 pt-1 pb-2">
           {navItems.map((item) => {
             const active = isActive(item.path);
             return (
               <button
                 key={item.id}
                 onClick={() => navigate(item.path)}
-                className={`flex flex-col items-center justify-center gap-1 px-6 py-2 rounded-xl transition-all duration-200 ${
+                className={`flex flex-col items-center justify-center gap-1.5 px-6 py-2 rounded-xl transition-all duration-200 ${
                   active 
                     ? 'text-emerald-400' 
                     : 'text-gray-400 hover:text-gray-200'
@@ -105,7 +126,7 @@ const BottomNav = () => {
                 <div className={`transition-transform duration-200 ${active ? 'scale-110' : ''}`}>
                   {item.icon(active)}
                 </div>
-                <span className={`text-xs font-medium transition-all duration-200 ${
+                <span className={`text-[13px] font-medium transition-all duration-200 ${
                   active ? 'opacity-100' : 'opacity-70'
                 }`}>
                   {item.label}

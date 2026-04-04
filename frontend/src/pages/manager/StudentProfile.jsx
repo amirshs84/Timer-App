@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { managerAPI } from '../../api/client';
+import { formatRelativeDateIran, getStartOfDayIran } from '../../utils/dateUtils';
 
 export default function StudentProfile() {
   const { userId } = useParams();
@@ -42,34 +43,20 @@ export default function StudentProfile() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffHours < 24) {
-      return 'امروز';
-    } else if (diffDays === 1) {
-      return 'دیروز';
-    } else if (diffDays < 7) {
-      return `${diffDays} روز پیش`;
-    } else {
-      return date.toLocaleDateString('fa-IR');
-    }
+    return formatRelativeDateIran(dateString);
   };
 
   const getHeatmapData = () => {
     if (!profile?.heatmap_data) return [];
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getStartOfDayIran();
     const heatmapDays = [];
     
     for (let i = 59; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      // Use local date string YYYY-MM-DD
+      
+      // Use YYYY-MM-DD for matching
       const dateStr = date.toLocaleDateString('en-CA');
       
       heatmapDays.push({
@@ -94,18 +81,22 @@ export default function StudentProfile() {
   const getFilteredSessions = () => {
     if (!profile?.recent_sessions) return [];
     
-    const now = new Date();
+    const now = getStartOfDayIran();
     const sessions = profile.recent_sessions;
 
     if (activeTab === 'daily') {
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      return sessions.filter(s => new Date(s.start_time) >= todayStart);
+      return sessions.filter(s => {
+        const sessionDate = getStartOfDayIran(s.start_time);
+        return sessionDate.getTime() === now.getTime();
+      });
     } else if (activeTab === 'weekly') {
-      const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      return sessions.filter(s => new Date(s.start_time) >= weekStart);
+      const weekStart = new Date(now);
+      weekStart.setDate(weekStart.getDate() - 7);
+      return sessions.filter(s => getStartOfDayIran(s.start_time) >= weekStart);
     } else if (activeTab === 'monthly') {
-      const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      return sessions.filter(s => new Date(s.start_time) >= monthStart);
+      const monthStart = new Date(now);
+      monthStart.setDate(monthStart.getDate() - 30);
+      return sessions.filter(s => getStartOfDayIran(s.start_time) >= monthStart);
     }
     return sessions;
   };
@@ -123,7 +114,14 @@ export default function StudentProfile() {
   }
 
   const filteredSessions = getFilteredSessions();
-  const totalTime = getTotalStudyTime(filteredSessions);
+  const getTabTotalTime = () => {
+    if (activeTab === 'daily') return profile.today || 0;
+    if (activeTab === 'weekly') return profile.week || 0;
+    if (activeTab === 'monthly') return profile.month || 0;
+    return 0;
+  };
+
+  const tabTotalTime = getTabTotalTime();
   const heatmapData = getHeatmapData();
 
   return (
@@ -246,8 +244,8 @@ export default function StudentProfile() {
             <p className="text-gray-400 text-sm mb-2">
               {activeTab === 'daily' ? 'مجموع امروز' : activeTab === 'weekly' ? 'مجموع هفته' : 'مجموع ماه'}
             </p>
-            <p className="text-5xl font-bold text-emerald-400">{formatDuration(totalTime)}</p>
-            <p className="text-gray-400 text-sm mt-1">{filteredSessions.length} جلسه</p>
+            <p className="text-5xl font-bold text-emerald-400">{formatDuration(tabTotalTime)}</p>
+            <p className="text-gray-400 text-sm mt-1">{filteredSessions.length} جلسه (نمایش داده شده)</p>
           </div>
 
           {/* Sessions List */}

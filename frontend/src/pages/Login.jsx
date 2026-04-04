@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/client';
-
+import { FiEye, FiEyeOff } from "react-icons/fi";
 const Login = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: phone, 2: password (new/existing), 3: profile
@@ -16,7 +16,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);	
   const gradeOptions = [
     { value: '7', label: 'هفتم' },
     { value: '8', label: 'هشتم' },
@@ -221,14 +222,14 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-black to-teal-950 text-white flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-10" style={{
-        backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
-        backgroundSize: '40px 40px'
-      }}></div>
+    <div className="min-h-[100dvh] bg-black bg-gradient-to-br from-emerald-950 via-black to-teal-950 text-white flex items-center justify-center p-4 relative overflow-hidden z-0">
+        <div className="absolute inset-0 opacity-10 -z-10 pointer-events-none" style={{
+    backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
+    backgroundSize: '40px 40px'
+  }}></div>
 
       <div className="w-full max-w-md relative z-10">
-        <div className="bg-gray-900/60 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-emerald-500/30">
+        <div className="bg-gray-900/60 backdrop-blur-xl transform-gpu relative z-10 rounded-3xl shadow-2xl p-8 border border-emerald-500/30">
           {/* Logo/Header */}
           <div className="text-center mb-8">
             <div className="text-6xl mb-4 drop-shadow-lg">📚</div>
@@ -297,22 +298,29 @@ const Login = () => {
                     <p className="text-emerald-400 font-semibold mb-1">خوش آمدید!</p>
                     <p className="text-gray-400 text-sm">رمز عبور خود را وارد کنید</p>
                   </div>
-
-                  <div>
-                    <label className="block text-gray-300 mb-2 text-sm font-medium">
-                      رمز عبور
-                    </label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="رمز عبور"
-                      className="w-full px-4 py-3 bg-gray-900/50 text-white rounded-xl border border-gray-600 
-                               focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 
-                               transition-all"
-                      disabled={loading}
-                    />
-                  </div>
+		<div>
+  <label className="block text-gray-300 mb-2 text-sm font-medium">
+    رمز عبور
+  </label>
+  <div className="relative">
+    <input
+      type={showPassword ? "text" : "password"}
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      placeholder="••••••••"
+      dir="ltr"
+      className="w-full pl-4 pr-11 py-3 text-left bg-gray-900/50 text-white rounded-xl border border-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+      disabled={loading}
+    />
+    <button
+      type="button"
+      onClick={() => setShowPassword((prev) => !prev)}
+      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-emerald-400 focus:outline-none transition-colors"
+    >
+      {showPassword ? <FiEye className="w-5 h-5" /> : <FiEyeOff className="w-5 h-5" />}
+    </button>
+  </div>
+</div>
                 </>
               ) : (
                 // New user - two password fields
@@ -323,44 +331,49 @@ const Login = () => {
                   </div>
 
                   <div>
-                    <label className="block text-gray-300 mb-2 text-sm font-medium">
-                      رمز عبور
-                    </label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={handlePasswordChange}
-                      placeholder="حداقل ۸ کاراکتر"
-                      className="w-full px-4 py-3 bg-gray-900/50 text-white rounded-xl border border-gray-600 
-                               focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 
-                               transition-all"
-                      disabled={loading}
-                    />
-                    {password && passwordStrength && (
-                      <p className={`text-xs mt-1 ${passwordStrength.color}`}>
-                        قدرت رمز: {passwordStrength.text}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      باید شامل: حرف بزرگ، حرف کوچک، عدد و علامت باشد
-                    </p>
-                  </div>
-
+  <label className="block text-gray-300 mb-2 text-sm font-medium">
+    رمز عبور
+  </label>
+  <div className="relative">
+    <input
+      type={showPassword ? "text" : "password"}
+      value={password}
+      onChange={handlePasswordChange}
+      placeholder="Min 8 characters"
+      dir="ltr"
+      className="w-full pl-4 pr-11 py-3 text-left bg-gray-900/50 text-white rounded-xl border border-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+    />
+    <button
+      type="button"
+      onClick={() => setShowPassword((prev) => !prev)}
+      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-emerald-400 focus:outline-none transition-colors"
+    >
+      {showPassword ? <FiEye className="w-5 h-5" /> : <FiEyeOff className="w-5 h-5" />}
+    </button>
+  </div>
+</div>
                   <div>
-                    <label className="block text-gray-300 mb-2 text-sm font-medium">
-                      تکرار رمز عبور
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordConfirm}
-                      onChange={(e) => setPasswordConfirm(e.target.value)}
-                      placeholder="رمز عبور را دوباره وارد کنید"
-                      className="w-full px-4 py-3 bg-gray-900/50 text-white rounded-xl border border-gray-600 
-                               focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 
-                               transition-all"
-                      disabled={loading}
-                    />
-                  </div>
+  <label className="block text-gray-300 mb-2 text-sm font-medium">
+    تکرار رمز عبور
+  </label>
+  <div className="relative">
+    <input
+      type={showPasswordConfirm ? "text" : "password"}
+      value={passwordConfirm}
+      onChange={(e) => setPasswordConfirm(e.target.value)}
+      placeholder="••••••••"
+      dir="ltr"
+      className="w-full pl-4 pr-11 py-3 text-left bg-gray-900/50 text-white rounded-xl border border-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+    />
+    <button
+      type="button"
+      onClick={() => setShowPasswordConfirm((prev) => !prev)}
+      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-emerald-400 focus:outline-none transition-colors"
+    >
+      {showPasswordConfirm ? <FiEye className="w-5 h-5" /> : <FiEyeOff className="w-5 h-5" />}
+    </button>
+  </div>
+</div>
                 </>
               )}
 

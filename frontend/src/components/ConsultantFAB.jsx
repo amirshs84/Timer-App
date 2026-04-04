@@ -16,6 +16,7 @@ const ConsultantFAB = () => {
       id: Date.now(),
       message: message,
       urgent: requestUrgent,
+      type: messageType, // باگ برطرف شد: ذخیره نوع پیام
       date: new Date().toISOString(),
       status: 'pending'
     };
@@ -64,7 +65,7 @@ const ConsultantFAB = () => {
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h2 className="text-3xl font-bold text-gray-200">با من حرف بزن</h2>
-                    <p className="text-gray-500 text-sm mt-1">پیام خود را ارسال کنید</p>
+                    <p className="text-gray-500 text-sm mt-1">اینجا می‌تونی مستقیم باهام در ارتباط باشی</p>
                   </div>
                   <button
                     onClick={handleClose}
@@ -77,7 +78,7 @@ const ConsultantFAB = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Message Type Selection */}
                   <div>
-                    <label className="block text-gray-400 mb-3 text-sm">نوع پیام</label>
+                    <label className="block text-gray-400 mb-3 text-sm">در چه موردی می‌خوای باهام صحبت کنی؟</label>
                     <div className="flex gap-3">
                       <button
                         type="button"
@@ -102,15 +103,13 @@ const ConsultantFAB = () => {
                         پشتیبانی سایت
                       </button>
                     </div>
-                  </div>
-
-                  {/* Message Field */}
+                  </div>{/* Message Field */}
                   <div>
-                    <label className="block text-gray-400 mb-3 text-sm">پیام شما</label>
+                    <label className="block text-gray-400 mb-3 text-sm">متن پیامت</label>
                     <textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      placeholder="پیام خود را اینجا بنویسید..."
+                      placeholder="هر سوال یا درددلی داری اینجا برام بنویس..."
                       className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 
                                focus:outline-none focus:border-purple-500 resize-none h-32"
                       required
@@ -130,11 +129,11 @@ const ConsultantFAB = () => {
                       />
                       <div className="flex-1">
                         <div className="text-white font-semibold flex items-center gap-2">
-                          درخواست مشاوره/تماس فوری
+                          نیاز به تماس فوری دارم!
                           <span className="text-red-400">⚡</span>
                         </div>
                         <div className="text-gray-400 text-sm mt-1">
-                          مشاور در اسرع وقت با شما تماس خواهد گرفت
+                          در اولین فرصت باهات تماس می‌گیرم
                         </div>
                       </div>
                     </label>
@@ -148,7 +147,7 @@ const ConsultantFAB = () => {
                       className="flex-1 px-6 py-3 bg-gray-800 rounded-lg hover:bg-gray-700 
                                transition font-semibold"
                     >
-                      انصراف
+                      بی‌خیال
                     </button>
                     <button
                       type="submit"
@@ -159,7 +158,7 @@ const ConsultantFAB = () => {
                                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'}
                                disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      {requestUrgent ? '🚨 ارسال فوری' : 'ارسال پیام'}
+                      {requestUrgent ? '🚨 زود بهم زنگ بزن' : 'برام بفرست'}
                     </button>
                   </div>
                 </form>
@@ -171,12 +170,12 @@ const ConsultantFAB = () => {
                   {requestUrgent ? '🚨' : '✅'}
                 </div>
                 <h3 className="text-3xl font-bold mb-3 text-green-400">
-                  {requestUrgent ? 'درخواست فوری ارسال شد!' : 'پیام با موفقیت ارسال شد!'}
+                  {requestUrgent ? 'درخواست فوریت رسید به دستم!' : 'پیامت رو با موفقیت دریافت کردم!'}
                 </h3>
                 <p className="text-gray-400">
                   {requestUrgent 
-                    ? 'مشاور در اسرع وقت با شما تماس خواهد گرفت'
-                    : 'مشاور به زودی پاسخ شما را خواهد داد'}
+                    ? 'حواسم هست، تو اولین فرصت باهات تماس می‌گیرم.'
+                    : 'به زودی پیامتو می‌خونم و جواب می‌دم.'}
                 </p>
               </div>
             )}
